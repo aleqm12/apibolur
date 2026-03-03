@@ -12,15 +12,17 @@ Layout.propTypes = { children: PropTypes.node.isRequired };
 export function Layout({ children }) { 
   const location = useLocation();
   const isHome = location.pathname === '/';
-  const showHeader = location.pathname !== '/';
+  const isCreateProject = location.pathname === '/project/crear/';
+  const showHeader = location.pathname !== '/' && !isCreateProject;
+  const isFullBleedPage = isHome || isCreateProject;
 
   return ( 
     <> 
       {showHeader && <Header />} 
       <Container 
-        maxWidth={isHome ? false : 'xl'} 
-        disableGutters={isHome}
-        style={{ paddingTop: isHome ? 0 : '1rem', paddingBottom: '6rem' }} 
+        maxWidth={isFullBleedPage ? false : 'xl'} 
+        disableGutters={isFullBleedPage}
+        style={{ paddingTop: isFullBleedPage ? 0 : '1rem', paddingBottom: '6rem' }} 
       > 
       <Toaster position='bottom-right' />
         {children} 
