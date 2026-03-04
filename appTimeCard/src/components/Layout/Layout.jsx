@@ -14,8 +14,9 @@ export function Layout({ children }) {
   const isHome = location.pathname === '/';
   const isCreateProject = location.pathname === '/project/crear/';
   const isCreateUser = location.pathname === '/user/create';
-  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateUser;
-  const isFullBleedPage = isHome || isCreateProject || isCreateUser;
+  const isAdminPanel = location.pathname === '/admin/panel';
+  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateUser && !isAdminPanel;
+  const isFullBleedPage = isHome || isCreateProject || isCreateUser || isAdminPanel;
 
   return ( 
     <> 

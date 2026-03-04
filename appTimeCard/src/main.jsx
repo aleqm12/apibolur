@@ -15,6 +15,7 @@ import { CreateMovie } from "./components/Movie/CreateMovie";
 import { UpdateMovie } from "./components/Movie/UpdateMovie";
 import { CreateProject } from "./components/Project/CreateProject";
 import { CreateUsuario } from "./components/User/CreateUsuario";
+import { AdminPanel } from "./components/Admin/AdminPanel";
 const rutas=createBrowserRouter(
   [
     {
@@ -63,6 +64,10 @@ const rutas=createBrowserRouter(
         {
           path:'/user/create',
           element: <CreateUsuario />
+        },
+        {
+          path:'/admin/panel',
+          element: <AdminPanel />
         }
       ]
     }

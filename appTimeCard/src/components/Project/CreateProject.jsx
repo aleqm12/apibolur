@@ -220,7 +220,7 @@ export function CreateProject() {
               >
                 <Button
                   variant="outlined"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/admin/panel')}
                   sx={{
                     color: 'secondary.contrastText',
                     borderColor: 'secondary.contrastText',
@@ -230,7 +230,7 @@ export function CreateProject() {
                     },
                   }}
                 >
-                  Volver a Home
+                  Volver al Panel
                 </Button>
               </Grid>
             </Grid>
