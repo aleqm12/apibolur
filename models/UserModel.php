@@ -14,7 +14,7 @@ class UserModel
 	{
 		try {
 			//Consulta sql
-			$vSql = "SELECT * FROM user;";
+			$vSql = "SELECT id_usuario, nombre, id_rol, nivel FROM usuarios;";
 
 			//Ejecutar la consulta
 			$vResultado = $this->enlace->ExecuteSQL($vSql);
@@ -29,16 +29,12 @@ class UserModel
 	public function get($id)
 	{
 		try {
-			$rolM = new RolModel();
-
 			//Consulta sql
-			$vSql = "SELECT * FROM user where id=$id";
+			$vSql = "SELECT id_usuario, nombre, id_rol, nivel FROM usuarios where id_usuario='$id'";
 			//Ejecutar la consulta
 			$vResultado = $this->enlace->ExecuteSQL($vSql);
 			if ($vResultado) {
 				$vResultado = $vResultado[0];
-				$rol = $rolM->getRolUser($id);
-				$vResultado->rol = $rol;
 				// Retornar el objeto
 				return $vResultado;
 			} else {
@@ -91,7 +87,18 @@ class UserModel
 	public function create($objeto)
 	{
 		try {
-			
+			$idUsuario = addslashes($objeto->id_usuario);
+			$nombre = addslashes($objeto->nombre);
+			$idRol = addslashes($objeto->id_rol);
+			$nivel = addslashes($objeto->nivel);
+			$hashPassword = password_hash($objeto->password, PASSWORD_BCRYPT);
+
+			$vSql = "INSERT INTO usuarios (id_usuario, nombre, id_rol, nivel, password) " .
+				"VALUES ('$idUsuario', '$nombre', '$idRol', '$nivel', '$hashPassword')";
+
+			$this->enlace->executeSQL_DML($vSql);
+
+			return $this->get($idUsuario);
 		} catch (Exception $e) {
 			handleException($e);
 		}

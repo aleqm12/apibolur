@@ -4,11 +4,15 @@ import Typography from '@mui/material/Typography';
 import { useForm, Controller } from 'react-hook-form';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -27,6 +31,7 @@ export function CreateUsuario() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [userFilter, setUserFilter] = useState('');
   const [users, setUsers] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const defaultValues = {
     id_usuario: '',
@@ -91,6 +96,7 @@ export function CreateUsuario() {
 
       setUsers((prevUsers) => [payloadUser, ...prevUsers]);
       reset(defaultValues);
+      setShowPassword(false);
       setIsFormOpen(false);
     } catch (submitError) {
       if (submitError instanceof SyntaxError) {
@@ -118,7 +124,7 @@ export function CreateUsuario() {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit, onError)} noValidate>
+      <form id="create-usuario-form" onSubmit={handleSubmit(onSubmit, onError)} noValidate>
         <Grid container spacing={1}>
           <Grid
             size={12}
@@ -186,6 +192,7 @@ export function CreateUsuario() {
                 setIsFormOpen((prev) => !prev);
                 if (isFormOpen) {
                   reset(defaultValues);
+                  setShowPassword(false);
                 }
               }}
             >
@@ -243,6 +250,7 @@ export function CreateUsuario() {
             open={isFormOpen}
             onClose={() => {
               reset(defaultValues);
+              setShowPassword(false);
               setIsFormOpen(false);
             }}
             fullWidth
@@ -326,10 +334,23 @@ export function CreateUsuario() {
                     render={({ field }) => (
                       <TextField
                         {...field}
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         fullWidth
                         id="password"
                         label="Contraseña"
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="Mostrar u ocultar contraseña"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                edge="end"
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
                         error={Boolean(errors.password)}
                         helperText={errors.password ? errors.password.message : ' '}
                       />
@@ -345,12 +366,19 @@ export function CreateUsuario() {
                 color="secondary"
                 onClick={() => {
                   reset(defaultValues);
+                  setShowPassword(false);
                   setIsFormOpen(false);
                 }}
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="contained" color="primary">
+              <Button
+                type="button"
+                variant="contained"
+                color="primary"
+                form="create-usuario-form"
+                onClick={handleSubmit(onSubmit, onError)}
+              >
                 Guardar
               </Button>
             </DialogActions>

@@ -37,6 +37,7 @@ require_once "controllers/ShopRentalController.php";
 require_once "controllers/InventoryController.php";
 require_once "controllers/RentalController.php";
 require_once "controllers/ImageController.php";
+require_once "controllers/UserController.php";
 
 //Enrutador
 require_once "routes/RoutesController.php";
