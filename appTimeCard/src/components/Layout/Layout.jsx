@@ -13,8 +13,9 @@ export function Layout({ children }) {
   const location = useLocation();
   const isHome = location.pathname === '/';
   const isCreateProject = location.pathname === '/project/crear/';
-  const showHeader = location.pathname !== '/' && !isCreateProject;
-  const isFullBleedPage = isHome || isCreateProject;
+  const isCreateUser = location.pathname === '/user/create';
+  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateUser;
+  const isFullBleedPage = isHome || isCreateProject || isCreateUser;
 
   return ( 
     <> 

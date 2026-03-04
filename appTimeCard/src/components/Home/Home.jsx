@@ -78,6 +78,9 @@ export function Home() {
         <Button variant="contained" color="primary" size="large" sx={{ minWidth: 320 }}>
           Hoja de Tiempo Activa
         </Button>
+        <Button variant="outlined" color="secondary" size="large" component={Link} to="/user/create" sx={{ minWidth: 320 }}>
+          Crear Usuario
+        </Button>
       </Stack>
       </Box>
       </Box>

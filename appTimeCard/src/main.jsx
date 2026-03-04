@@ -14,6 +14,7 @@ import TableMovies from "./components/Movie/TableMovies";
 import { CreateMovie } from "./components/Movie/CreateMovie";
 import { UpdateMovie } from "./components/Movie/UpdateMovie";
 import { CreateProject } from "./components/Project/CreateProject";
+import { CreateUsuario } from "./components/User/CreateUsuario";
 const rutas=createBrowserRouter(
   [
     {
@@ -58,6 +59,10 @@ const rutas=createBrowserRouter(
         {
           path:'/project/crear/',
           element: <CreateProject />
+        },
+        {
+          path:'/user/create',
+          element: <CreateUsuario />
         }
       ]
     }
