@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Grid from '@mui/material/Grid2';
 import Typography from '@mui/material/Typography';
 import { useForm, Controller } from 'react-hook-form';
@@ -6,6 +6,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -13,6 +17,8 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -29,13 +35,29 @@ export function CreateUsuario() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
   const [userFilter, setUserFilter] = useState('');
   const [users, setUsers] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
 
+  const roleOptions = [
+    { id_rol: 1, nombre_rol: 'Administrador' },
+    { id_rol: 2, nombre_rol: 'Operario' },
+  ];
+
+  const nivelOptions = [
+    'Ingeniero Senior',
+    'Ingeniero I',
+    'Ingeniero II',
+    'Pasante',
+    'Gerente',
+  ];
+
   const defaultValues = {
     id_usuario: '',
     nombre: '',
+    apellidos: '',
     id_rol: '',
     nivel: '',
     password: '',
@@ -50,10 +72,14 @@ export function CreateUsuario() {
       .string()
       .required('El nombre es requerido')
       .max(150, 'El nombre debe tener máximo 150 caracteres'),
-    id_rol: yup
+    apellidos: yup
       .string()
-      .required('El ID del rol es requerido')
-      .max(20, 'El ID del rol debe tener máximo 20 caracteres'),
+      .required('Los apellidos son requeridos')
+      .max(150, 'Los apellidos deben tener máximo 150 caracteres'),
+    id_rol: yup
+      .number()
+      .typeError('Seleccione un rol')
+      .required('El rol es requerido'),
     nivel: yup
       .string()
       .required('El nivel es requerido')
@@ -81,22 +107,45 @@ export function CreateUsuario() {
       const payloadUser = {
         id_usuario: dataForm.id_usuario,
         nombre: dataForm.nombre,
+        apellidos: dataForm.apellidos,
         id_rol: dataForm.id_rol,
         nivel: dataForm.nivel,
-        password: dataForm.password,
       };
 
-      const response = await UserService.createUser(payloadUser);
+      let response;
+      if (isEditMode) {
+        response = await UserService.updateUser({
+          ...payloadUser,
+          password: dataForm.password,
+        });
+      } else {
+        response = await UserService.createUser({
+          ...payloadUser,
+          password: dataForm.password,
+        });
+      }
       setError(response.error);
 
-      toast.success(`Usuario creado #${dataForm.id_usuario} - ${dataForm.nombre}`, {
+      const userSaved = response.data ?? { ...payloadUser, nombre_rol: roleOptions.find((r) => r.id_rol === Number(payloadUser.id_rol))?.nombre_rol };
+
+      toast.success(`${isEditMode ? 'Usuario actualizado' : 'Usuario creado'} #${dataForm.id_usuario} - ${dataForm.nombre}`, {
         duration: 4000,
         position: 'top-center',
       });
 
-      setUsers((prevUsers) => [payloadUser, ...prevUsers]);
+      if (isEditMode) {
+        setUsers((prevUsers) =>
+          prevUsers.map((userItem) =>
+            userItem.id_usuario === editingUserId ? userSaved : userItem
+          )
+        );
+      } else {
+        setUsers((prevUsers) => [userSaved, ...prevUsers]);
+      }
       reset(defaultValues);
       setShowPassword(false);
+      setIsEditMode(false);
+      setEditingUserId(null);
       setIsFormOpen(false);
     } catch (submitError) {
       if (submitError instanceof SyntaxError) {
@@ -115,10 +164,56 @@ export function CreateUsuario() {
       return (
         userFilter.trim() === '' ||
         userItem.id_usuario.toLowerCase().includes(userFilter.trim().toLowerCase()) ||
-        userItem.nombre.toLowerCase().includes(userFilter.trim().toLowerCase())
+        userItem.nombre.toLowerCase().includes(userFilter.trim().toLowerCase()) ||
+        (userItem.apellidos || '').toLowerCase().includes(userFilter.trim().toLowerCase())
       );
     });
   }, [users, userFilter]);
+
+  const handleEditUser = (userItem) => {
+    setIsEditMode(true);
+    setEditingUserId(userItem.id_usuario);
+    reset({
+      id_usuario: userItem.id_usuario,
+      nombre: userItem.nombre,
+      apellidos: userItem.apellidos || '',
+      id_rol: Number(userItem.id_rol),
+      nivel: userItem.nivel,
+      password: '',
+    });
+    setShowPassword(false);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteUser = async (userId) => {
+    const confirmed = window.confirm('¿Desea eliminar este usuario?');
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await UserService.deleteUser(userId);
+      setUsers((prevUsers) => prevUsers.filter((userItem) => userItem.id_usuario !== userId));
+      toast.success('Usuario eliminado con éxito', {
+        duration: 3000,
+        position: 'top-center',
+      });
+    } catch (serviceError) {
+      console.error(serviceError);
+      toast.error('No se pudo eliminar el usuario');
+    }
+  };
+
+  useEffect(() => {
+    UserService.getUsers()
+      .then((response) => {
+        const apiUsers = Array.isArray(response.data) ? response.data : [];
+        setUsers(apiUsers);
+      })
+      .catch((serviceError) => {
+        console.error(serviceError);
+        toast.error('No se pudieron cargar los usuarios existentes');
+      });
+  }, []);
 
   if (error && error.message) return <p>Error: {error.message}</p>;
 
@@ -189,14 +284,14 @@ export function CreateUsuario() {
               variant="contained"
               color="primary"
               onClick={() => {
-                setIsFormOpen((prev) => !prev);
-                if (isFormOpen) {
-                  reset(defaultValues);
-                  setShowPassword(false);
-                }
+                setIsEditMode(false);
+                setEditingUserId(null);
+                reset(defaultValues);
+                setShowPassword(false);
+                setIsFormOpen(true);
               }}
             >
-              {isFormOpen ? 'Ocultar Formulario' : '+ Nuevo Usuario'}
+              + Nuevo Usuario
             </Button>
           </Grid>
 
@@ -219,14 +314,16 @@ export function CreateUsuario() {
                     <TableRow>
                       <TableCell>ID Usuario</TableCell>
                       <TableCell>Nombre</TableCell>
-                      <TableCell>ID Rol</TableCell>
+                      <TableCell>Apellidos</TableCell>
+                      <TableCell>Rol</TableCell>
                       <TableCell>Nivel</TableCell>
+                      <TableCell align="center">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} align="center">
+                        <TableCell colSpan={6} align="center">
                           Aún no hay usuarios creados en esta sesión.
                         </TableCell>
                       </TableRow>
@@ -235,8 +332,17 @@ export function CreateUsuario() {
                         <TableRow key={userItem.id_usuario} hover>
                           <TableCell>{userItem.id_usuario}</TableCell>
                           <TableCell>{userItem.nombre}</TableCell>
-                          <TableCell>{userItem.id_rol}</TableCell>
+                          <TableCell>{userItem.apellidos}</TableCell>
+                          <TableCell>{userItem.nombre_rol || roleOptions.find((role) => role.id_rol === Number(userItem.id_rol))?.nombre_rol || userItem.id_rol}</TableCell>
                           <TableCell>{userItem.nivel}</TableCell>
+                          <TableCell align="center">
+                            <IconButton color="primary" onClick={() => handleEditUser(userItem)}>
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton color="error" onClick={() => handleDeleteUser(userItem.id_usuario)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -251,12 +357,14 @@ export function CreateUsuario() {
             onClose={() => {
               reset(defaultValues);
               setShowPassword(false);
+              setIsEditMode(false);
+              setEditingUserId(null);
               setIsFormOpen(false);
             }}
             fullWidth
             maxWidth="md"
           >
-            <DialogTitle>Formulario de Nuevo Usuario</DialogTitle>
+            <DialogTitle>{isEditMode ? 'Editar Usuario' : 'Formulario de Nuevo Usuario'}</DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={1} sx={{ pt: 1 }}>
                 <Grid size={12} sm={6}>
@@ -269,6 +377,7 @@ export function CreateUsuario() {
                         fullWidth
                         id="id_usuario"
                         label="ID Usuario"
+                        disabled={isEditMode}
                         error={Boolean(errors.id_usuario)}
                         helperText={errors.id_usuario ? errors.id_usuario.message : ' '}
                       />
@@ -295,17 +404,44 @@ export function CreateUsuario() {
 
                 <Grid size={12} sm={6}>
                   <Controller
-                    name="id_rol"
+                    name="apellidos"
                     control={control}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         fullWidth
-                        id="id_rol"
-                        label="ID Rol"
-                        error={Boolean(errors.id_rol)}
-                        helperText={errors.id_rol ? errors.id_rol.message : ' '}
+                        id="apellidos"
+                        label="Apellidos"
+                        error={Boolean(errors.apellidos)}
+                        helperText={errors.apellidos ? errors.apellidos.message : ' '}
                       />
+                    )}
+                  />
+                </Grid>
+
+                <Grid size={12} sm={6}>
+                  <Controller
+                    name="id_rol"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={Boolean(errors.id_rol)}>
+                        <InputLabel id="id-rol-label">Rol</InputLabel>
+                        <Select
+                          {...field}
+                          labelId="id-rol-label"
+                          id="id_rol"
+                          label="Rol"
+                        >
+                          {roleOptions.map((roleItem) => (
+                            <MenuItem key={roleItem.id_rol} value={roleItem.id_rol}>
+                              {roleItem.nombre_rol}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <Typography variant="caption" color="error" sx={{ minHeight: 20, mt: 0.5, ml: 1.5 }}>
+                          {errors.id_rol ? errors.id_rol.message : ' '}
+                        </Typography>
+                      </FormControl>
                     )}
                   />
                 </Grid>
@@ -315,14 +451,24 @@ export function CreateUsuario() {
                     name="nivel"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        id="nivel"
-                        label="Nivel"
-                        error={Boolean(errors.nivel)}
-                        helperText={errors.nivel ? errors.nivel.message : ' '}
-                      />
+                      <FormControl fullWidth error={Boolean(errors.nivel)}>
+                        <InputLabel id="nivel-label">Nivel</InputLabel>
+                        <Select
+                          {...field}
+                          labelId="nivel-label"
+                          id="nivel"
+                          label="Nivel"
+                        >
+                          {nivelOptions.map((nivelItem) => (
+                            <MenuItem key={nivelItem} value={nivelItem}>
+                              {nivelItem}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <Typography variant="caption" color="error" sx={{ minHeight: 20, mt: 0.5, ml: 1.5 }}>
+                          {errors.nivel ? errors.nivel.message : ' '}
+                        </Typography>
+                      </FormControl>
                     )}
                   />
                 </Grid>
@@ -337,7 +483,7 @@ export function CreateUsuario() {
                         type={showPassword ? 'text' : 'password'}
                         fullWidth
                         id="password"
-                        label="Contraseña"
+                        label={isEditMode ? 'Contraseña (dejar vacía para no cambiar)' : 'Contraseña'}
                         InputProps={{
                           endAdornment: (
                             <InputAdornment position="end">
@@ -367,6 +513,8 @@ export function CreateUsuario() {
                 onClick={() => {
                   reset(defaultValues);
                   setShowPassword(false);
+                  setIsEditMode(false);
+                  setEditingUserId(null);
                   setIsFormOpen(false);
                 }}
               >

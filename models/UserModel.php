@@ -14,7 +14,8 @@ class UserModel
 	{
 		try {
 			//Consulta sql
-			$vSql = "SELECT id_usuario, nombre, id_rol, nivel FROM usuarios;";
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel " .
+				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol;";
 
 			//Ejecutar la consulta
 			$vResultado = $this->enlace->ExecuteSQL($vSql);
@@ -30,7 +31,9 @@ class UserModel
 	{
 		try {
 			//Consulta sql
-			$vSql = "SELECT id_usuario, nombre, id_rol, nivel FROM usuarios where id_usuario='$id'";
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel " .
+				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol " .
+				"WHERE u.id_usuario='$id'";
 			//Ejecutar la consulta
 			$vResultado = $this->enlace->ExecuteSQL($vSql);
 			if ($vResultado) {
@@ -89,16 +92,58 @@ class UserModel
 		try {
 			$idUsuario = addslashes($objeto->id_usuario);
 			$nombre = addslashes($objeto->nombre);
-			$idRol = addslashes($objeto->id_rol);
+			$apellidos = addslashes($objeto->apellidos);
+			$idRol = (int) $objeto->id_rol;
 			$nivel = addslashes($objeto->nivel);
 			$hashPassword = password_hash($objeto->password, PASSWORD_BCRYPT);
 
-			$vSql = "INSERT INTO usuarios (id_usuario, nombre, id_rol, nivel, password) " .
-				"VALUES ('$idUsuario', '$nombre', '$idRol', '$nivel', '$hashPassword')";
+			$vSql = "INSERT INTO usuarios (id_usuario, nombre, apellidos, id_rol, nivel, password) " .
+				"VALUES ('$idUsuario', '$nombre', '$apellidos', $idRol, '$nivel', '$hashPassword')";
 
 			$this->enlace->executeSQL_DML($vSql);
 
 			return $this->get($idUsuario);
+		} catch (Exception $e) {
+			handleException($e);
+		}
+	}
+
+	public function update($objeto)
+	{
+		try {
+			$idUsuario = addslashes($objeto->id_usuario);
+			$nombre = addslashes($objeto->nombre);
+			$apellidos = addslashes($objeto->apellidos);
+			$idRol = (int) $objeto->id_rol;
+			$nivel = addslashes($objeto->nivel);
+
+			$vSql = "UPDATE usuarios SET " .
+				"nombre='$nombre', " .
+				"apellidos='$apellidos', " .
+				"id_rol=$idRol, " .
+				"nivel='$nivel'";
+
+			if (isset($objeto->password) && !empty($objeto->password)) {
+				$hashPassword = password_hash($objeto->password, PASSWORD_BCRYPT);
+				$vSql .= ", password='$hashPassword'";
+			}
+
+			$vSql .= " WHERE id_usuario='$idUsuario'";
+
+			$this->enlace->executeSQL_DML($vSql);
+
+			return $this->get($idUsuario);
+		} catch (Exception $e) {
+			handleException($e);
+		}
+	}
+
+	public function delete($id)
+	{
+		try {
+			$idUsuario = addslashes($id);
+			$vSql = "DELETE FROM usuarios WHERE id_usuario='$idUsuario'";
+			return $this->enlace->executeSQL_DML($vSql);
 		} catch (Exception $e) {
 			handleException($e);
 		}

@@ -40,4 +40,31 @@ class user
             handleException($e);
         }
     }
+
+    public function update()
+    {
+        try {
+            $request = new Request();
+            $response = new Response();
+            $inputJSON = $request->getJSON();
+
+            $userM = new UserModel();
+            $result = $userM->update($inputJSON);
+            $response->toJSON($result);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
+
+    public function delete($id)
+    {
+        try {
+            $response = new Response();
+            $userM = new UserModel();
+            $result = $userM->delete($id);
+            $response->toJSON($result);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
 }
