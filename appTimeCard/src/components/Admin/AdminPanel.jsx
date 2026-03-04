@@ -35,7 +35,7 @@ export function AdminPanel() {
               Panel de Administración
             </Typography>
             <Typography variant="subtitle1" sx={{ color: 'secondary.contrastText' }}>
-              Inicio de Administración
+              Inicio
             </Typography>
           </Grid>
 
