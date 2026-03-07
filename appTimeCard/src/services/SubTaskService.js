@@ -7,6 +7,10 @@ class SubTaskService {
     return axios.post(BASE_URL, JSON.stringify(subTask));
   }
 
+  deleteSubTasksByProject(idProyecto) {
+    return axios.delete(`${BASE_URL}/deletebyproject/${idProyecto}`);
+  }
+
   async createSubTasksByProject(idProyecto, subTasks) {
     const requests = subTasks.map((subTask) => {
       const payload = {

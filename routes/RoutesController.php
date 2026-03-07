@@ -153,7 +153,9 @@ class RoutesController
                                     break;
 
                                 case 'DELETE':
-                                    if ($param1) {
+                                    if ($param1 && $action && method_exists($controller, $action)) {
+                                        $response->$action($param1);
+                                    } elseif ($param1) {
                                         $response->delete($param1);
                                     } elseif ($action) {
                                         if (method_exists($controller, $action)) {

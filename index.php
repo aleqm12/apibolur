@@ -27,6 +27,9 @@ require_once "models/ShopRentalModel.php";
 require_once "models/RentalModel.php";
 require_once "models/RentalMovieModel.php";
 require_once "models/ImageModel.php";
+require_once "models/ClientModel.php";
+require_once "models/SubTaskModel.php";
+require_once "models/ProjectModel.php";
 
 /***--- Agregar todos los controladores*/
 require_once "controllers/DirectorController.php";
@@ -38,6 +41,8 @@ require_once "controllers/InventoryController.php";
 require_once "controllers/RentalController.php";
 require_once "controllers/ImageController.php";
 require_once "controllers/UserController.php";
+require_once "controllers/SubTaskController.php";
+require_once "controllers/ProjectController.php";
 
 //Enrutador
 require_once "routes/RoutesController.php";
