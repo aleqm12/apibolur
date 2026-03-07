@@ -40,7 +40,7 @@ class MySqlConnect {
 	 */
 	//
 	public function executeSQL($sql,$resultType="obj") {
-		$lista = NULL;
+		$lista = [];
 		try {
 			$this->connect();	
 			if ($result = $this->link->query ( $sql )) {

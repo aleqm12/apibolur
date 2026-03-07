@@ -13,11 +13,11 @@ class Response
     public function toJSON($response = [],$message="")
     {
         //Verificar respuesta
-        if (isset($response) && !empty($response)) {
+        if ($response !== null) {
             $json = $response;
         } else {
             $this->status =400;
-            $json =  $message ?? "No se efectuo la solicitud";
+            $json = $message !== "" ? $message : "No se efectuo la solicitud";
         }
         //Escribir respuesta JSON con código de estado HTTP
         echo json_encode(

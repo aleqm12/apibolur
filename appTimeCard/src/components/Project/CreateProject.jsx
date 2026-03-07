@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import Tooltip from '@mui/material/Tooltip';
 import Paper from '@mui/material/Paper';
 import Dialog from '@mui/material/Dialog';
@@ -34,12 +35,29 @@ export function CreateProject() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState(null);
   const [projectFilter, setProjectFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
   const [projects, setProjects] = useState([]);
+  const [successDialog, setSuccessDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
+
+  const fieldLabels = {
+    id_proyecto: 'ID del proyecto',
+    nombre_cliente: 'Nombre del cliente',
+    nombre_proyecto: 'Nombre del proyecto',
+    id_cliente: 'ID del cliente',
+    id_subtarea: 'ID de la sub tarea',
+    nombre_tarea: 'Nombre de la sub tarea',
+  };
 
   const defaultValues = {
     id_proyecto: '',
+    nombre_cliente: '',
     nombre_proyecto: '',
     id_cliente: '',
     sub_tareas: [
@@ -55,6 +73,10 @@ export function CreateProject() {
       .string()
       .required('El ID del proyecto es requerido')
       .max(20, 'El ID del proyecto debe tener máximo 20 caracteres'),
+    nombre_cliente: yup
+      .string()
+      .required('El nombre del cliente es requerido')
+      .max(150, 'El nombre del cliente debe tener máximo 150 caracteres'),
     nombre_proyecto: yup
       .string()
       .required('El nombre del proyecto es requerido')
@@ -109,40 +131,96 @@ export function CreateProject() {
     remove(index);
   };
 
-  const onError = (formErrors, event) => console.log(formErrors, event);
+  const collectMissingFields = (formErrors, prefix = '') => {
+    if (!formErrors || typeof formErrors !== 'object') {
+      return [];
+    }
+
+    return Object.entries(formErrors).flatMap(([key, value]) => {
+      const currentPath = prefix ? `${prefix}.${key}` : key;
+
+      if (!value || typeof value !== 'object') {
+        return [];
+      }
+
+      if (value.type === 'required') {
+        const label = fieldLabels[key] || key;
+        if (prefix.startsWith('sub_tareas.')) {
+          const subTaskIndex = Number(prefix.split('.')[1]) + 1;
+          return [`Sub tarea #${subTaskIndex}: ${label}`];
+        }
+        return [label];
+      }
+
+      return collectMissingFields(value, currentPath);
+    });
+  };
+
+  const onError = (formErrors, event) => {
+    console.log(formErrors, event);
+    const missingFields = collectMissingFields(formErrors);
+
+    if (missingFields.length > 0) {
+      toast.error(`Faltan campos obligatorios: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    const firstErrorMessage = Object.values(formErrors)[0]?.message;
+    if (firstErrorMessage) {
+      toast.error(firstErrorMessage);
+    }
+  };
 
   const onSubmit = async (dataForm) => {
     try {
       const payloadProject = {
         id_proyecto: dataForm.id_proyecto,
+        nombre_cliente: dataForm.nombre_cliente,
         nombre_proyecto: dataForm.nombre_proyecto,
         id_cliente: dataForm.id_cliente,
       };
 
-      const projectResponse = await ProjectService.createProject(payloadProject);
-      setError(projectResponse.error);
+      if (isEditMode) {
+        setProjects((prevProjects) =>
+          prevProjects.map((projectItem) =>
+            projectItem.id_proyecto === editingProjectId
+              ? { ...payloadProject, sub_tareas: dataForm.sub_tareas }
+              : projectItem
+          )
+        );
 
-      await SubTaskService.createSubTasksByProject(
-        dataForm.id_proyecto,
-        dataForm.sub_tareas
-      );
+        setSuccessDialog({
+          open: true,
+          title: 'Proyecto modificado correctamente',
+          message: `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        });
+      } else {
+        const projectResponse = await ProjectService.createProject(payloadProject);
+        setError(projectResponse.error);
 
-      toast.success(
-        `Proyecto creado #${dataForm.id_proyecto} - ${dataForm.nombre_proyecto}`,
-        {
-          duration: 4000,
-          position: 'top-center',
-        }
-      );
+        await SubTaskService.createSubTasksByProject(
+          dataForm.id_proyecto,
+          dataForm.sub_tareas
+        );
 
-      setProjects((prevProjects) => [
-        {
-          ...payloadProject,
-          sub_tareas: dataForm.sub_tareas,
-        },
-        ...prevProjects,
-      ]);
+        setProjects((prevProjects) => [
+          {
+            ...payloadProject,
+            sub_tareas: dataForm.sub_tareas,
+          },
+          ...prevProjects,
+        ]);
+
+        setSuccessDialog({
+          open: true,
+          title: 'Proyecto agregado correctamente',
+          message: `Se agregó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        });
+      }
+
       reset(defaultValues);
+      setIsEditMode(false);
+      setEditingProjectId(null);
       setIsFormOpen(false);
       return;
     } catch (submitError) {
@@ -152,31 +230,82 @@ export function CreateProject() {
         throw new Error('Respuesta no válida del servidor');
       }
       setError(submitError);
-      toast.error('No se pudo crear el proyecto con sus sub tareas');
+      toast.error(isEditMode ? 'No se pudo modificar el proyecto' : 'No se pudo crear el proyecto con sus sub tareas');
       console.error(submitError);
     }
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setSuccessDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
+  };
+
+  const handleEditProject = (projectItem) => {
+    setIsEditMode(true);
+    setEditingProjectId(projectItem.id_proyecto);
+    reset({
+      id_proyecto: projectItem.id_proyecto,
+      nombre_cliente: projectItem.nombre_cliente || '',
+      nombre_proyecto: projectItem.nombre_proyecto,
+      id_cliente: projectItem.id_cliente,
+      sub_tareas: projectItem.sub_tareas?.length
+        ? projectItem.sub_tareas
+        : [
+            {
+              id_subtarea: '',
+              nombre_tarea: '',
+            },
+          ],
+    });
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteProject = (projectId) => {
+    const confirmed = window.confirm('¿Desea eliminar este proyecto?');
+    if (!confirmed) {
+      return;
+    }
+
+    setProjects((prevProjects) =>
+      prevProjects.filter((projectItem) => projectItem.id_proyecto !== projectId)
+    );
+    toast.success('Proyecto eliminado con éxito', {
+      duration: 3000,
+      position: 'top-center',
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    toast.success('Sesión cerrada correctamente', {
+      duration: 3000,
+      position: 'top-center',
+    });
+    navigate('/');
   };
 
   const filteredProjects = useMemo(() => {
     return projects.filter((projectItem) => {
       const matchesProject =
         projectFilter.trim() === '' ||
-        projectItem.id_proyecto
-          .toLowerCase()
-          .includes(projectFilter.trim().toLowerCase()) ||
         projectItem.nombre_proyecto
           .toLowerCase()
           .includes(projectFilter.trim().toLowerCase());
 
       const matchesClient =
-        clientFilter.trim() === '' || projectItem.id_cliente === clientFilter;
+        clientFilter.trim() === '' ||
+        (projectItem.nombre_cliente || '').toLowerCase() === clientFilter.toLowerCase();
 
       return matchesProject && matchesClient;
     });
   }, [projects, projectFilter, clientFilter]);
 
   const clientOptions = useMemo(() => {
-    return [...new Set(projects.map((projectItem) => projectItem.id_cliente))].sort();
+    return [...new Set(projects.map((projectItem) => projectItem.nombre_cliente).filter(Boolean))].sort();
   }, [projects]);
 
   if (error && error.message) return <p>Error: {error.message}</p>;
@@ -216,7 +345,12 @@ export function CreateProject() {
 
               <Grid
                 size={{ xs: 12, md: 3 }}
-                sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}
+                sx={{
+                  display: 'flex',
+                  justifyContent: { xs: 'center', md: 'flex-end' },
+                  gap: 1,
+                  flexWrap: 'wrap',
+                }}
               >
                 <Button
                   variant="outlined"
@@ -231,6 +365,13 @@ export function CreateProject() {
                   }}
                 >
                   Volver al Panel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleLogout}
+                >
+                  Cerrar Sesión
                 </Button>
               </Grid>
             </Grid>
@@ -248,13 +389,13 @@ export function CreateProject() {
               variant="contained"
               color="primary"
               onClick={() => {
-                setIsFormOpen((prev) => !prev);
-                if (isFormOpen) {
-                  reset(defaultValues);
-                }
+                setIsEditMode(false);
+                setEditingProjectId(null);
+                reset(defaultValues);
+                setIsFormOpen(true);
               }}
             >
-              {isFormOpen ? 'Ocultar Formulario' : '+ Nuevo Proyecto'}
+              + Nuevo Proyecto
             </Button>
           </Grid>
 
@@ -264,7 +405,7 @@ export function CreateProject() {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
-                    label="Buscar Proyecto (ID o Nombre)"
+                    label="Buscar Proyecto (Nombre)"
                     value={projectFilter}
                     onChange={(event) => setProjectFilter(event.target.value)}
                   />
@@ -298,26 +439,37 @@ export function CreateProject() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
+                      <TableCell>ID Cliente</TableCell>
+                      <TableCell>Cliente</TableCell>
                       <TableCell>ID Proyecto</TableCell>
                       <TableCell>Nombre del Proyecto</TableCell>
-                      <TableCell>ID Cliente</TableCell>
                       <TableCell align="right">Sub Tareas</TableCell>
+                      <TableCell align="center">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {filteredProjects.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} align="center">
+                        <TableCell colSpan={6} align="center">
                           Aún no hay proyectos creados en esta sesión.
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredProjects.map((projectItem) => (
                         <TableRow key={projectItem.id_proyecto} hover>
+                          <TableCell>{projectItem.id_cliente}</TableCell>
+                          <TableCell>{projectItem.nombre_cliente}</TableCell>
                           <TableCell>{projectItem.id_proyecto}</TableCell>
                           <TableCell>{projectItem.nombre_proyecto}</TableCell>
-                          <TableCell>{projectItem.id_cliente}</TableCell>
                           <TableCell align="right">{projectItem.sub_tareas.length}</TableCell>
+                          <TableCell align="center">
+                            <IconButton color="primary" onClick={() => handleEditProject(projectItem)}>
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton color="error" onClick={() => handleDeleteProject(projectItem.id_proyecto)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -336,7 +488,7 @@ export function CreateProject() {
             fullWidth
             maxWidth="lg"
           >
-            <DialogTitle>Formulario de Nuevo Proyecto</DialogTitle>
+            <DialogTitle>{isEditMode ? 'Editar Proyecto' : 'Formulario de Nuevo Proyecto'}</DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={1} sx={{ pt: 1 }}>
 
@@ -370,6 +522,24 @@ export function CreateProject() {
                     label="Nombre del Proyecto"
                     error={Boolean(errors.nombre_proyecto)}
                     helperText={errors.nombre_proyecto ? errors.nombre_proyecto.message : ' '}
+                  />
+                )}
+              />
+            </FormControl>
+          </Grid>
+
+          <Grid size={12} sm={4}>
+            <FormControl variant="standard" fullWidth sx={{ m: 1 }}>
+              <Controller
+                name="nombre_cliente"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    id="nombre_cliente"
+                    label="Nombre del Cliente"
+                    error={Boolean(errors.nombre_cliente)}
+                    helperText={errors.nombre_cliente ? errors.nombre_cliente.message : ' '}
                   />
                 )}
               />
@@ -483,13 +653,32 @@ export function CreateProject() {
                 color="secondary"
                 onClick={() => {
                   reset(defaultValues);
+                  setIsEditMode(false);
+                  setEditingProjectId(null);
                   setIsFormOpen(false);
                 }}
               >
                 Cancelar
               </Button>
               <Button type="submit" variant="contained" color="primary">
-                Guardar
+                {isEditMode ? 'Guardar Cambios' : 'Guardar'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={successDialog.open}
+            onClose={handleCloseSuccessDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>{successDialog.title}</DialogTitle>
+            <DialogContent dividers>
+              <Typography>{successDialog.message}</Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleCloseSuccessDialog} autoFocus>
+                Aceptar
               </Button>
             </DialogActions>
           </Dialog>
