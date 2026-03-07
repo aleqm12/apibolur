@@ -31,6 +31,26 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import UserService from '../../services/UserService';
 
+const getPasswordValidationMessage = (passwordValue) => {
+  if (passwordValue.length < 8) {
+    return 'La contraseña debe tener al menos 8 caracteres';
+  }
+  if (!/[A-Z]/.test(passwordValue)) {
+    return 'La contraseña debe incluir al menos una letra mayúscula';
+  }
+  if (!/[a-z]/.test(passwordValue)) {
+    return 'La contraseña debe incluir al menos una letra minúscula';
+  }
+  if (!/\d/.test(passwordValue)) {
+    return 'La contraseña debe incluir al menos un número';
+  }
+  if (!/[^A-Za-z0-9]/.test(passwordValue)) {
+    return 'La contraseña debe incluir al menos un signo especial';
+  }
+
+  return null;
+};
+
 export function CreateUsuario() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -40,6 +60,20 @@ export function CreateUsuario() {
   const [userFilter, setUserFilter] = useState('');
   const [users, setUsers] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [successDialog, setSuccessDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
+
+  const fieldLabels = {
+    id_usuario: 'ID de usuario',
+    nombre: 'Nombre',
+    apellidos: 'Apellidos',
+    id_rol: 'Rol',
+    nivel: 'Nivel',
+    password: 'Contraseña',
+  };
 
   const roleOptions = [
     { id_rol: 1, nombre_rol: 'Administrador' },
@@ -63,32 +97,54 @@ export function CreateUsuario() {
     password: '',
   };
 
-  const userSchema = yup.object({
-    id_usuario: yup
-      .string()
-      .required('El ID del usuario es requerido')
-      .max(20, 'El ID del usuario debe tener máximo 20 caracteres'),
-    nombre: yup
-      .string()
-      .required('El nombre es requerido')
-      .max(150, 'El nombre debe tener máximo 150 caracteres'),
-    apellidos: yup
-      .string()
-      .required('Los apellidos son requeridos')
-      .max(150, 'Los apellidos deben tener máximo 150 caracteres'),
-    id_rol: yup
-      .number()
-      .typeError('Seleccione un rol')
-      .required('El rol es requerido'),
-    nivel: yup
-      .string()
-      .required('El nivel es requerido')
-      .max(50, 'El nivel debe tener máximo 50 caracteres'),
-    password: yup
-      .string()
-      .required('La contraseña es requerida')
-      .max(255, 'La contraseña debe tener máximo 255 caracteres'),
-  });
+  const userSchema = useMemo(
+    () =>
+      yup.object({
+        id_usuario: yup
+          .string()
+          .required('El ID del usuario es requerido')
+          .matches(/^\d+$/, 'El ID debe contener solo números, sin guiones')
+          .max(20, 'El ID del usuario debe tener máximo 20 dígitos'),
+        nombre: yup
+          .string()
+          .required('El nombre es requerido')
+          .max(150, 'El nombre debe tener máximo 150 caracteres'),
+        apellidos: yup
+          .string()
+          .required('Los apellidos son requeridos')
+          .max(150, 'Los apellidos deben tener máximo 150 caracteres'),
+        id_rol: yup
+          .number()
+          .typeError('Seleccione un rol')
+          .required('El rol es requerido'),
+        nivel: yup
+          .string()
+          .required('El nivel es requerido')
+          .max(50, 'El nivel debe tener máximo 50 caracteres'),
+        password: yup
+          .string()
+          .max(255, 'La contraseña debe tener máximo 255 caracteres')
+          .test('password-security', function validatePassword(value) {
+            const normalizedPassword = (value || '').trim();
+
+            if (!isEditMode && normalizedPassword === '') {
+              return this.createError({ message: 'La contraseña es requerida' });
+            }
+
+            if (normalizedPassword === '') {
+              return true;
+            }
+
+            const passwordMessage = getPasswordValidationMessage(normalizedPassword);
+            if (passwordMessage) {
+              return this.createError({ message: passwordMessage });
+            }
+
+            return true;
+          }),
+      }),
+    [isEditMode]
+  );
 
   const {
     control,
@@ -100,7 +156,22 @@ export function CreateUsuario() {
     resolver: yupResolver(userSchema),
   });
 
-  const onError = (formErrors, event) => console.log(formErrors, event);
+  const onError = (formErrors, event) => {
+    console.log(formErrors, event);
+    const missingFields = Object.entries(formErrors)
+      .filter(([, value]) => value?.type === 'required')
+      .map(([key]) => fieldLabels[key] || key);
+
+    if (missingFields.length > 0) {
+      toast.error(`Faltan campos obligatorios: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    const firstErrorMessage = Object.values(formErrors)[0]?.message;
+    if (firstErrorMessage) {
+      toast.error(firstErrorMessage);
+    }
+  };
 
   const onSubmit = async (dataForm) => {
     try {
@@ -111,13 +182,19 @@ export function CreateUsuario() {
         id_rol: dataForm.id_rol,
         nivel: dataForm.nivel,
       };
+      const passwordValue = (dataForm.password || '').trim();
+      const passwordWasUpdated = isEditMode && passwordValue !== '';
 
       let response;
       if (isEditMode) {
-        response = await UserService.updateUser({
-          ...payloadUser,
-          password: dataForm.password,
-        });
+        response = await UserService.updateUser(
+          passwordValue
+            ? {
+                ...payloadUser,
+                password: dataForm.password,
+              }
+            : payloadUser
+        );
       } else {
         response = await UserService.createUser({
           ...payloadUser,
@@ -128,10 +205,19 @@ export function CreateUsuario() {
 
       const userSaved = response.data ?? { ...payloadUser, nombre_rol: roleOptions.find((r) => r.id_rol === Number(payloadUser.id_rol))?.nombre_rol };
 
-      toast.success(`${isEditMode ? 'Usuario actualizado' : 'Usuario creado'} #${dataForm.id_usuario} - ${dataForm.nombre}`, {
-        duration: 4000,
-        position: 'top-center',
-      });
+      if (isEditMode) {
+        setSuccessDialog({
+          open: true,
+          title: 'Usuario editado con éxito',
+          message: `Se modificó correctamente el usuario #${dataForm.id_usuario} - ${dataForm.nombre}. ${passwordWasUpdated ? 'La contraseña fue actualizada.' : 'La contraseña no se modificó.'}`,
+        });
+      } else {
+        setSuccessDialog({
+          open: true,
+          title: 'Usuario guardado con éxito',
+          message: `Se guardó correctamente el usuario #${dataForm.id_usuario} - ${dataForm.nombre}.`,
+        });
+      }
 
       if (isEditMode) {
         setUsers((prevUsers) =>
@@ -154,9 +240,27 @@ export function CreateUsuario() {
         throw new Error('Respuesta no válida del servidor');
       }
       setError(submitError);
-      toast.error('No se pudo crear el usuario');
+      toast.error(isEditMode ? 'No se pudo modificar el usuario' : 'No se pudo crear el usuario');
       console.error(submitError);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    toast.success('Sesión cerrada correctamente', {
+      duration: 3000,
+      position: 'top-center',
+    });
+    navigate('/');
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setSuccessDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
   };
 
   const filteredUsers = useMemo(() => {
@@ -252,7 +356,12 @@ export function CreateUsuario() {
 
               <Grid
                 size={{ xs: 12, md: 3 }}
-                sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}
+                sx={{
+                  display: 'flex',
+                  justifyContent: { xs: 'center', md: 'flex-end' },
+                  gap: 1,
+                  flexWrap: 'wrap',
+                }}
               >
                 <Button
                   variant="outlined"
@@ -267,6 +376,13 @@ export function CreateUsuario() {
                   }}
                 >
                   Volver al Panel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleLogout}
+                >
+                  Cerrar Sesión
                 </Button>
               </Grid>
             </Grid>
@@ -374,12 +490,21 @@ export function CreateUsuario() {
                     render={({ field }) => (
                       <TextField
                         {...field}
+                        onChange={(event) => {
+                          const onlyDigits = event.target.value.replace(/\D/g, '');
+                          field.onChange(onlyDigits);
+                        }}
                         fullWidth
                         id="id_usuario"
                         label="ID Usuario"
-                        disabled={isEditMode}
+                        placeholder="115130776"
+                        inputProps={{
+                          maxLength: 20,
+                          inputMode: 'numeric',
+                          pattern: '[0-9]*',
+                        }}
                         error={Boolean(errors.id_usuario)}
-                        helperText={errors.id_usuario ? errors.id_usuario.message : ' '}
+                        helperText={errors.id_usuario ? errors.id_usuario.message : 'Solo números, sin guiones. Ejemplo: 115130776'}
                       />
                     )}
                   />
@@ -498,7 +623,7 @@ export function CreateUsuario() {
                           ),
                         }}
                         error={Boolean(errors.password)}
-                        helperText={errors.password ? errors.password.message : ' '}
+                        helperText={errors.password ? errors.password.message : 'Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 signo especial.'}
                       />
                     )}
                   />
@@ -528,6 +653,23 @@ export function CreateUsuario() {
                 onClick={handleSubmit(onSubmit, onError)}
               >
                 Guardar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={successDialog.open}
+            onClose={handleCloseSuccessDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>{successDialog.title}</DialogTitle>
+            <DialogContent dividers>
+              <Typography>{successDialog.message}</Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleCloseSuccessDialog} autoFocus>
+                Aceptar
               </Button>
             </DialogActions>
           </Dialog>
