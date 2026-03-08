@@ -49,6 +49,11 @@ export function CreateProject() {
     title: '',
     message: '',
   });
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    title: '',
+    messages: [],
+  });
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     type: '',
@@ -168,19 +173,94 @@ export function CreateProject() {
     });
   };
 
+  const openErrorDialog = (title, messages) => {
+    const normalizedMessages = Array.isArray(messages) ? messages.filter(Boolean) : [messages];
+    setErrorDialog({
+      open: true,
+      title,
+      messages: normalizedMessages,
+    });
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({
+      open: false,
+      title: '',
+      messages: [],
+    });
+  };
+
   const onError = (formErrors, event) => {
     console.log(formErrors, event);
     const missingFields = collectMissingFields(formErrors);
 
     if (missingFields.length > 0) {
-      toast.error(`Faltan campos obligatorios: ${missingFields.join(', ')}`);
+      openErrorDialog(
+        'Faltan campos obligatorios',
+        missingFields.map((fieldName) => `Complete el campo: ${fieldName}`)
+      );
       return;
     }
 
     const firstErrorMessage = Object.values(formErrors)[0]?.message;
     if (firstErrorMessage) {
-      toast.error(firstErrorMessage);
+      openErrorDialog('Revise el formulario', [firstErrorMessage]);
     }
+  };
+
+  const validateUniqueIdsBeforeSave = (dataForm) => {
+    const formSubTaskIds = dataForm.sub_tareas
+      .map((subTask) => (subTask.id_subtarea || '').trim())
+      .filter(Boolean);
+
+    const subTaskIdCounts = formSubTaskIds.reduce((accumulator, idSubTask) => {
+      accumulator[idSubTask] = (accumulator[idSubTask] || 0) + 1;
+      return accumulator;
+    }, {});
+
+    const repeatedInForm = Object.entries(subTaskIdCounts)
+      .filter(([, qty]) => qty > 1)
+      .map(([idSubTask]) => idSubTask);
+
+    const relevantProjects = isEditMode
+      ? projects.filter((projectItem) => projectItem.id_proyecto !== editingProjectId)
+      : projects;
+
+    const existingProjectIds = new Set(
+      relevantProjects.map((projectItem) => projectItem.id_proyecto)
+    );
+
+    const existingSubTaskIds = new Set(
+      relevantProjects.flatMap((projectItem) =>
+        Array.isArray(projectItem.sub_tareas)
+          ? projectItem.sub_tareas.map((subTask) => subTask.id_subtarea)
+          : []
+      )
+    );
+
+    const duplicateProjectId = existingProjectIds.has(dataForm.id_proyecto);
+    const alreadyUsedSubTaskIds = [...new Set(formSubTaskIds.filter((idSubTask) => existingSubTaskIds.has(idSubTask)))];
+
+    if (!duplicateProjectId && repeatedInForm.length === 0 && alreadyUsedSubTaskIds.length === 0) {
+      return true;
+    }
+
+    const errorMessages = [];
+
+    if (duplicateProjectId) {
+      errorMessages.push(`El ID de proyecto ${dataForm.id_proyecto} ya existe.`);
+    }
+
+    if (repeatedInForm.length > 0) {
+      errorMessages.push(`Hay IDs de sub tareas repetidos en el formulario: ${repeatedInForm.join(', ')}.`);
+    }
+
+    if (alreadyUsedSubTaskIds.length > 0) {
+      errorMessages.push(`Estos IDs de sub tareas ya existen: ${alreadyUsedSubTaskIds.join(', ')}.`);
+    }
+
+    openErrorDialog('No se puede guardar el proyecto', errorMessages);
+    return false;
   };
 
   const loadProjects = async () => {
@@ -255,6 +335,10 @@ export function CreateProject() {
 
   const onSubmit = async (dataForm) => {
     try {
+      if (!validateUniqueIdsBeforeSave(dataForm)) {
+        return;
+      }
+
       if (isEditMode) {
         setPendingDataForm(dataForm);
         setConfirmDialog({
@@ -276,7 +360,15 @@ export function CreateProject() {
         throw new Error('Respuesta no válida del servidor');
       }
       setError(submitError);
-      toast.error(isEditMode ? 'No se pudo modificar el proyecto' : 'No se pudo crear el proyecto con sus sub tareas');
+      openErrorDialog(
+        isEditMode ? 'No se pudo modificar el proyecto' : 'No se pudo crear el proyecto',
+        [
+          isEditMode
+            ? 'Ocurrió un error al actualizar el proyecto o sus sub tareas.'
+            : 'Ocurrió un error al crear el proyecto o sus sub tareas.',
+          'Revise que los IDs no estén repetidos y vuelva a intentarlo.',
+        ]
+      );
       console.error(submitError);
     }
   };
@@ -310,7 +402,14 @@ export function CreateProject() {
       }
     } catch (serviceError) {
       console.error(serviceError);
-      toast.error(confirmDialog.type === 'delete' ? 'No se pudo eliminar el proyecto' : 'No se pudo modificar el proyecto');
+      openErrorDialog(
+        confirmDialog.type === 'delete' ? 'No se pudo eliminar el proyecto' : 'No se pudo modificar el proyecto',
+        [
+          confirmDialog.type === 'delete'
+            ? 'Ocurrió un error al eliminar el proyecto.'
+            : 'Ocurrió un error al modificar el proyecto.',
+        ]
+      );
     } finally {
       handleCloseConfirmDialog();
     }
@@ -791,6 +890,29 @@ export function CreateProject() {
               ))
             )}
           </Menu>
+
+          <Dialog
+            open={errorDialog.open}
+            onClose={handleCloseErrorDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>{errorDialog.title}</DialogTitle>
+            <DialogContent dividers>
+              <Grid container spacing={1}>
+                {errorDialog.messages.map((messageItem, index) => (
+                  <Grid size={12} key={`${messageItem}-${index}`}>
+                    <Typography>{`• ${messageItem}`}</Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleCloseErrorDialog} autoFocus>
+                Aceptar
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           <Dialog
             open={confirmDialog.open}
