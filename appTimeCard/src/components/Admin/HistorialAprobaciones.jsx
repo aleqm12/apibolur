@@ -13,8 +13,11 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import AprobacionesService from '../../services/AprobacionesService';
 
 const aprobadoChipSx = {
@@ -39,6 +42,7 @@ export function HistorialAprobaciones() {
   const [filterEstado, setFilterEstado] = useState('Todos');
   const [filterProyecto, setFilterProyecto] = useState('');
   const [filterDecisor, setFilterDecisor] = useState('');
+  const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -80,7 +84,11 @@ export function HistorialAprobaciones() {
         });
         setRows(Array.isArray(response?.data) ? response.data : []);
       } catch {
-        toast.error('No fue posible cargar el historial de aprobaciones.');
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar historial',
+          message: 'No fue posible cargar el historial de aprobaciones.',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -116,6 +124,10 @@ export function HistorialAprobaciones() {
       backgroundColor: 'secondary.contrastText',
       color: 'secondary.main',
     },
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({ open: false, title: '', message: '' });
   };
 
   if (!currentUser) {
@@ -221,6 +233,18 @@ export function HistorialAprobaciones() {
           </Table>
         </TableContainer>
       </Box>
+
+      <Dialog open={errorDialog.open} onClose={handleCloseErrorDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

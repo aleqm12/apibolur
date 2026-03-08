@@ -11,9 +11,12 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
 const pendienteChipSx = {
@@ -42,6 +45,11 @@ export function ActiveTimeSheet() {
   const [currentUser, setCurrentUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   const currentWeekStart = useMemo(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'), []);
   const currentWeekEnd = useMemo(() => format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'), []);
@@ -86,7 +94,11 @@ export function ActiveTimeSheet() {
 
         setRows(activeRows);
       } catch {
-        toast.error('No fue posible cargar la hoja de tiempo activa.');
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar hoja',
+          message: 'No fue posible cargar la hoja de tiempo activa.',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -111,6 +123,14 @@ export function ActiveTimeSheet() {
       backgroundColor: 'secondary.contrastText',
       color: 'secondary.main',
     },
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
   };
 
   return (
@@ -195,6 +215,18 @@ export function ActiveTimeSheet() {
           </Table>
         </TableContainer>
       </Box>
+
+      <Dialog open={errorDialog.open} onClose={handleCloseErrorDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

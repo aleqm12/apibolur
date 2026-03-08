@@ -489,7 +489,7 @@ export function CreateProject() {
   useEffect(() => {
     loadProjects().catch((serviceError) => {
       console.error(serviceError);
-      toast.error('No se pudieron cargar los proyectos existentes');
+      openErrorDialog('Error al cargar proyectos', ['No se pudieron cargar los proyectos existentes.']);
     });
   }, []);
 
@@ -934,7 +934,7 @@ export function CreateProject() {
             maxWidth="sm"
             fullWidth
           >
-            <DialogTitle>{errorDialog.title}</DialogTitle>
+            <DialogTitle>Error</DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={1}>
                 {errorDialog.messages.map((messageItem, index) => (

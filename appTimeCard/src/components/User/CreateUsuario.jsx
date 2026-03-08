@@ -364,7 +364,11 @@ export function CreateUsuario() {
       });
     } catch (serviceError) {
       console.error(serviceError);
-      toast.error('No se pudo eliminar el usuario');
+      setErrorDialog({
+        open: true,
+        title: 'No se pudo eliminar el usuario',
+        messages: ['No se pudo eliminar el usuario.'],
+      });
     }
   };
 
@@ -376,7 +380,11 @@ export function CreateUsuario() {
       })
       .catch((serviceError) => {
         console.error(serviceError);
-        toast.error('No se pudieron cargar los usuarios existentes');
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar usuarios',
+          messages: ['No se pudieron cargar los usuarios existentes.'],
+        });
       });
   }, []);
 
@@ -767,7 +775,7 @@ export function CreateUsuario() {
             maxWidth="sm"
             fullWidth
           >
-            <DialogTitle>{errorDialog.title}</DialogTitle>
+            <DialogTitle>Error</DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={1}>
                 {errorDialog.messages.map((messageItem, index) => (

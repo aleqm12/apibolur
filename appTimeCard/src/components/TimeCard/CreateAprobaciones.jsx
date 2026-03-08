@@ -37,6 +37,11 @@ export function CreateAprobaciones() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -104,11 +109,13 @@ export function CreateAprobaciones() {
           primaryError?.response?.data?.message ||
           '';
 
-        toast.error(
-          backendMessage
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar aprobaciones',
+          message: backendMessage
             ? `No fue posible cargar los registros para aprobacion: ${backendMessage}`
-            : 'No fue posible cargar los registros para aprobacion.'
-        );
+            : 'No fue posible cargar los registros para aprobacion.',
+        });
       }
     } finally {
       setIsLoading(false);
@@ -239,12 +246,20 @@ export function CreateAprobaciones() {
 
   const submitDecision = async (estadoResultante, targetRows, motivoRechazo = '') => {
     if (!targetRows || targetRows.length === 0) {
-      toast.error('Seleccione al menos un registro.');
+      setErrorDialog({
+        open: true,
+        title: 'No se puede continuar',
+        message: 'Seleccione al menos un registro.',
+      });
       return;
     }
 
     if (estadoResultante === 'Rechazado' && motivoRechazo.trim() === '') {
-      toast.error('Debe indicar un motivo de rechazo.');
+      setErrorDialog({
+        open: true,
+        title: 'Motivo requerido',
+        message: 'Debe indicar un motivo de rechazo.',
+      });
       return;
     }
 
@@ -267,14 +282,22 @@ export function CreateAprobaciones() {
       }
 
       if ((response?.data?.total_errores || 0) > 0) {
-        toast.error('Algunas decisiones no se pudieron guardar. Revise el servidor.');
+        setErrorDialog({
+          open: true,
+          title: 'Guardado con observaciones',
+          message: 'Algunas decisiones no se pudieron guardar. Revise el servidor.',
+        });
       }
 
       setRejectDialogOpen(false);
       setRejectReason('');
       await loadRows();
     } catch {
-      toast.error('No fue posible guardar la aprobación.');
+      setErrorDialog({
+        open: true,
+        title: 'Error al guardar',
+        message: 'No fue posible guardar la aprobación.',
+      });
     }
   };
 
@@ -284,7 +307,11 @@ export function CreateAprobaciones() {
 
   const handleRejectSelected = () => {
     if (selectedRows.length === 0) {
-      toast.error('Seleccione al menos un registro.');
+      setErrorDialog({
+        open: true,
+        title: 'No se puede rechazar',
+        message: 'Seleccione al menos un registro.',
+      });
       return;
     }
     setRejectDialogOpen(true);
@@ -312,6 +339,14 @@ export function CreateAprobaciones() {
   const handleCloseLogoutDialog = () => {
     setLogoutDialogOpen(false);
     navigate('/');
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
   };
 
   const fullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
@@ -543,6 +578,18 @@ export function CreateAprobaciones() {
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={handleCloseLogoutDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={errorDialog.open} onClose={handleCloseErrorDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
             Aceptar
           </Button>
         </DialogActions>

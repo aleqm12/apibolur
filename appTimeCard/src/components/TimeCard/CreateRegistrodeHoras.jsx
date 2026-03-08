@@ -232,7 +232,11 @@ export function CreateRegistrodeHoras() {
         const response = await ProjectService.getProjects();
         setProjects(Array.isArray(response.data) ? response.data : []);
       } catch {
-        toast.error('No fue posible cargar proyectos y sub-tareas.');
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar datos',
+          message: 'No fue posible cargar proyectos y sub-tareas.',
+        });
       }
     };
 
@@ -313,7 +317,11 @@ export function CreateRegistrodeHoras() {
       setRows(hydratedRows.length > 0 ? hydratedRows : [buildEmptyRow(weekDays)]);
       setEstadoEnvio('enviado');
     } catch {
-      toast.error('No fue posible cargar la hoja seleccionada para editar.');
+      setErrorDialog({
+        open: true,
+        title: 'Error al cargar hoja',
+        message: 'No fue posible cargar la hoja seleccionada para editar.',
+      });
     }
   }, [idUsuario, periodStart, periodEnd, weekDays, projectIdFromSubTaskMap]);
 
@@ -584,7 +592,11 @@ export function CreateRegistrodeHoras() {
     }
 
     if (!draftStorageKey) {
-      toast.error('No fue posible guardar el borrador.');
+      setErrorDialog({
+        open: true,
+        title: 'Error al guardar',
+        message: 'No fue posible guardar el borrador.',
+      });
       return;
     }
 
@@ -701,12 +713,20 @@ export function CreateRegistrodeHoras() {
           localStorage.removeItem(draftStorageKey);
         }
       } else {
-        toast.error('No se logró guardar ningún registro.');
+        setErrorDialog({
+          open: true,
+          title: 'Error al guardar',
+          message: 'No se logró guardar ningún registro.',
+        });
       }
 
       setSelectedRowIds([]);
     } catch {
-      toast.error('No fue posible guardar la hoja de tiempo.');
+      setErrorDialog({
+        open: true,
+        title: 'Error al guardar',
+        message: 'No fue posible guardar la hoja de tiempo.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -738,7 +758,11 @@ export function CreateRegistrodeHoras() {
 
     if (newEndDate > maxEndForStart) {
       setPeriodEnd(maxEndForStart);
-      toast.error('El periodo máximo permitido es de 14 días.');
+      setErrorDialog({
+        open: true,
+        title: 'Periodo no permitido',
+        message: 'El periodo máximo permitido es de 14 días.',
+      });
       return;
     }
 
@@ -840,6 +864,11 @@ export function CreateRegistrodeHoras() {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1}>
+            {isFixedPeriodMode ? (
+              <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/registro-horas/historial')}>
+                Volver al historial
+              </Button>
+            ) : null}
             <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/')}>
               Volver al menu
             </Button>
@@ -1129,13 +1158,13 @@ export function CreateRegistrodeHoras() {
       </Dialog>
 
       <Dialog open={errorDialog.open} onClose={closeErrorDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>{errorDialog.title}</DialogTitle>
+        <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Typography>{errorDialog.message}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeErrorDialog} variant="contained" autoFocus>
-            Entendido
+            Aceptar
           </Button>
         </DialogActions>
       </Dialog>

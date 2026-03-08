@@ -222,7 +222,7 @@ export function LoginUsuario() {
       </Stack>
 
       <Dialog open={errorDialog.open} onClose={closeErrorDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>{errorDialog.title || 'Error'}</DialogTitle>
+        <DialogTitle>Error</DialogTitle>
         <DialogContent>
           <Typography>{errorDialog.message}</Typography>
         </DialogContent>

@@ -23,7 +23,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
 const DRAFT_STORAGE_PREFIX = 'timeSheetDraft';
@@ -66,6 +65,7 @@ export function HistorialHojasTiempo() {
   const [filterHasta, setFilterHasta] = useState('');
   const [selectedSheetKey, setSelectedSheetKey] = useState('');
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, title: '', text: '' });
+  const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -105,7 +105,11 @@ export function HistorialHojasTiempo() {
 
         setAllRows(orderedRows);
       } catch {
-        toast.error('No fue posible cargar el historial de hojas de tiempo.');
+        setErrorDialog({
+          open: true,
+          title: 'Error al cargar historial',
+          message: 'No fue posible cargar el historial de hojas de tiempo.',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -256,13 +260,21 @@ export function HistorialHojasTiempo() {
 
   const handleOpenSelectedSheet = (viewMode = false) => {
     if (!selectedSheetKey) {
-      toast.error('Seleccione una hoja para continuar.');
+      setErrorDialog({
+        open: true,
+        title: 'Seleccione una hoja',
+        message: 'Seleccione una hoja para continuar.',
+      });
       return;
     }
 
     const selectedSheet = sheets.find((item) => item.key === selectedSheetKey);
     if (!selectedSheet) {
-      toast.error('La hoja seleccionada ya no esta disponible.');
+      setErrorDialog({
+        open: true,
+        title: 'Hoja no disponible',
+        message: 'La hoja seleccionada ya no esta disponible.',
+      });
       return;
     }
 
@@ -288,6 +300,10 @@ export function HistorialHojasTiempo() {
 
   const handleCloseFeedbackDialog = () => {
     setFeedbackDialog({ open: false, title: '', text: '' });
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({ open: false, title: '', message: '' });
   };
 
   const headerActionButtonSx = {
@@ -440,6 +456,18 @@ export function HistorialHojasTiempo() {
         <DialogActions>
           <Button variant="contained" onClick={handleCloseFeedbackDialog} autoFocus>
             Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={errorDialog.open} onClose={handleCloseErrorDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Error</DialogTitle>
+        <DialogContent>
+          <Typography>{errorDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
+            Aceptar
           </Button>
         </DialogActions>
       </Dialog>
