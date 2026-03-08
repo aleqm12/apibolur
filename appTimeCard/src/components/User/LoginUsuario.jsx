@@ -7,6 +7,10 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
@@ -23,12 +27,33 @@ export function LoginUsuario() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
+
+  const openErrorDialog = (title, message) => {
+    setErrorDialog({
+      open: true,
+      title,
+      message,
+    });
+  };
+
+  const closeErrorDialog = () => {
+    setErrorDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (idUsuario.trim() === '' || password.trim() === '') {
-      toast.error('Ingrese su ID de usuario y contrasena.');
+      openErrorDialog('Datos incompletos', 'Ingrese su ID de usuario y contraseña.');
       return;
     }
 
@@ -43,7 +68,7 @@ export function LoginUsuario() {
       const token = response?.data?.token;
 
       if (!authUser || !token) {
-        toast.error('No fue posible iniciar sesion.');
+        openErrorDialog('Error de acceso', 'No fue posible iniciar sesión. Intente nuevamente.');
         return;
       }
 
@@ -58,8 +83,8 @@ export function LoginUsuario() {
         navigate('/');
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Credenciales invalidas';
-      toast.error(message);
+      const message = error?.response?.data?.message || 'Credenciales inválidas';
+      openErrorDialog('Error de acceso', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,8 +144,8 @@ export function LoginUsuario() {
           >
             {'B\u00f6lur Engineers S.A.'}
           </Typography>
-          <Typography variant="h6" sx={{ mt: 1.5, letterSpacing: '0.14em', color: 'secondary.main' }}>
-            Gestion de Horas - Lineas de Transmision
+          <Typography variant="h6" sx={{ mt: 2.6, letterSpacing: '0.14em', color: 'secondary.main' }}>
+            Gestión de Horas - Líneas de Transmisión
           </Typography>
         </Box>
 
@@ -173,13 +198,40 @@ export function LoginUsuario() {
                 fullWidth
               />
 
-              <Button type="submit" variant="contained" color="secondary" disabled={isSubmitting} sx={{ py: 1.2, fontWeight: 700, letterSpacing: '0.05em' }}>
+              <Button
+                type="submit"
+                variant="contained"
+                color="secondary"
+                disabled={isSubmitting}
+                sx={{
+                  py: 1.2,
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  borderRadius: 1.5,
+                  textTransform: 'uppercase',
+                  '&:hover': {
+                    backgroundColor: '#1f4b74',
+                  },
+                }}
+              >
                 {isSubmitting ? 'Ingresando...' : 'Ingresar'}
               </Button>
             </Stack>
           </form>
         </Paper>
       </Stack>
+
+      <Dialog open={errorDialog.open} onClose={closeErrorDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>{errorDialog.title || 'Error'}</DialogTitle>
+        <DialogContent>
+          <Typography>{errorDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" color="secondary" onClick={closeErrorDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
