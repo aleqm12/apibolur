@@ -26,6 +26,13 @@ const getChipColor = (estado) => {
   return 'warning';
 };
 
+const pendienteChipSx = {
+  bgcolor: '#ffeb3b',
+  color: '#4e342e',
+  fontWeight: 700,
+  border: '1px solid rgba(78, 52, 46, 0.25)',
+};
+
 export function ActiveTimeSheet() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -145,7 +152,12 @@ export function ActiveTimeSheet() {
                     <TableCell>[{row.id_proyecto}] {row.nombre_proyecto || row.id_proyecto} / {row.nombre_tarea || row.id_subtarea}</TableCell>
                     <TableCell align="right">{Number(row.horas || 0).toFixed(2)}</TableCell>
                     <TableCell align="center">
-                      <Chip size="small" color={getChipColor(row.estado_aprobacion)} label={(row.estado_aprobacion || 'Pendiente').toUpperCase()} />
+                      <Chip
+                        size="small"
+                        color={row.estado_aprobacion === 'Pendiente' ? 'default' : getChipColor(row.estado_aprobacion)}
+                        sx={row.estado_aprobacion === 'Pendiente' ? pendienteChipSx : undefined}
+                        label={(row.estado_aprobacion || 'Pendiente').toUpperCase()}
+                      />
                     </TableCell>
                     <TableCell>{row.comentarios || '-'}</TableCell>
                   </TableRow>

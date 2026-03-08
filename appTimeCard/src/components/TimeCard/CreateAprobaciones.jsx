@@ -134,6 +134,13 @@ export function CreateAprobaciones() {
     return 'warning';
   };
 
+  const pendienteChipSx = {
+    bgcolor: '#ffeb3b',
+    color: '#4e342e',
+    fontWeight: 700,
+    border: '1px solid rgba(78, 52, 46, 0.25)',
+  };
+
   const toggleSelectAll = (checked) => {
     if (checked) {
       setSelectedIds(rows.map((row) => row.id_registro));
@@ -227,6 +234,14 @@ export function CreateAprobaciones() {
     navigate('/');
   };
 
+  const fullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
+  const userInitials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0].toUpperCase())
+    .join('') || 'AD';
+
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
       <Paper
@@ -235,22 +250,43 @@ export function CreateAprobaciones() {
           px: { xs: 2, md: 4 },
           py: 2,
           borderRadius: 0,
-          bgcolor: '#4f88b5',
-          color: '#ecf6ff',
+          bgcolor: 'secondary.main',
+          color: 'secondary.contrastText',
         }}
       >
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Panel de Administracion
-            </Typography>
-            <Typography variant="body1">Aprobacion de tiempos</Typography>
-          </Box>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 46,
+                height: 46,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.42)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: 'secondary.contrastText',
+              }}
+            >
+              {userInitials}
+            </Box>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                Panel de Administracion
+              </Typography>
+              <Typography variant="body1">Aprobacion de tiempos</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.88 }}>
+                Usuario: {fullName || currentUser?.id_usuario || 'Administrador'}
+              </Typography>
+            </Box>
+          </Stack>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={() => navigate('/admin/panel')}>
+            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/admin/panel')}>
               Volver al menu
             </Button>
-            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={handleLogout}>
+            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={handleLogout}>
               Cerrar sesion
             </Button>
           </Stack>
@@ -340,7 +376,12 @@ export function CreateAprobaciones() {
                       </TableCell>
                       <TableCell align="center">{Number(row.horas || 0).toFixed(1)}</TableCell>
                       <TableCell align="center">
-                        <Chip label={(row.estado_aprobacion || 'Pendiente').toUpperCase()} color={getChipColor(row.estado_aprobacion)} size="small" />
+                        <Chip
+                          label={(row.estado_aprobacion || 'Pendiente').toUpperCase()}
+                          color={row.estado_aprobacion === 'Pendiente' ? 'default' : getChipColor(row.estado_aprobacion)}
+                          sx={row.estado_aprobacion === 'Pendiente' ? pendienteChipSx : undefined}
+                          size="small"
+                        />
                       </TableCell>
                       <TableCell align="center">
                         <Stack direction="row" spacing={1} justifyContent="center">

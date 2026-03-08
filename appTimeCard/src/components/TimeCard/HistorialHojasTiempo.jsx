@@ -30,6 +30,13 @@ const getChipColor = (estado) => {
   return 'warning';
 };
 
+const pendienteChipSx = {
+  bgcolor: '#ffeb3b',
+  color: '#4e342e',
+  fontWeight: 700,
+  border: '1px solid rgba(78, 52, 46, 0.25)',
+};
+
 export function HistorialHojasTiempo() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -236,7 +243,12 @@ export function HistorialHojasTiempo() {
                     <TableCell align="right">{sheet.totalRegistros}</TableCell>
                     <TableCell align="right">{Number(sheet.totalHoras || 0).toFixed(2)}</TableCell>
                     <TableCell align="center">
-                      <Chip size="small" color={getChipColor(sheet.estadoHoja)} label={(sheet.estadoHoja || 'Pendiente').toUpperCase()} />
+                      <Chip
+                        size="small"
+                        color={sheet.estadoHoja === 'Pendiente' ? 'default' : getChipColor(sheet.estadoHoja)}
+                        sx={sheet.estadoHoja === 'Pendiente' ? pendienteChipSx : undefined}
+                        label={(sheet.estadoHoja || 'Pendiente').toUpperCase()}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

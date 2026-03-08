@@ -586,8 +586,8 @@ export function CreateRegistrodeHoras() {
           px: { xs: 2, md: 4 },
           py: 2,
           borderRadius: 0,
-          bgcolor: '#4f88b5',
-          color: '#ecf6ff',
+          bgcolor: 'secondary.main',
+          color: 'secondary.contrastText',
         }}
       >
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
@@ -597,13 +597,14 @@ export function CreateRegistrodeHoras() {
                 width: 48,
                 height: 48,
                 borderRadius: 1.5,
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-                border: '1px solid rgba(255, 255, 255, 0.35)',
+                bgcolor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid rgba(255, 255, 255, 0.42)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 800,
                 fontSize: '1rem',
+                color: 'secondary.contrastText',
               }}
             >
               {userInitials}
@@ -618,13 +619,16 @@ export function CreateRegistrodeHoras() {
               <Typography variant="body1" sx={{ fontWeight: 700 }}>
                 ID: {idUsuario || 'sin definir'}
               </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.88 }}>
+                Periodo actual: {formattedStartDate} - {formattedEndDate}
+              </Typography>
             </Box>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={() => navigate('/')}>
+            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/')}>
               Volver al menu
             </Button>
-            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={handleLogout}>
+            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={handleLogout}>
               Cerrar sesión
             </Button>
           </Stack>
