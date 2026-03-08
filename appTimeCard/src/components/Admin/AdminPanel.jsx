@@ -87,7 +87,7 @@ export function AdminPanel() {
             <Button variant="contained" color="primary" size="large" component={Link} to="/project/crear/" sx={{ minWidth: 320 }}>
               Proyectos
             </Button>
-            <Button variant="outlined" color="secondary" size="large" disabled sx={{ minWidth: 320 }}>
+            <Button variant="contained" color="primary" size="large" component={Link} to="/aprobaciones/crear" sx={{ minWidth: 320 }}>
               Aprobaciones
             </Button>
             <Button variant="outlined" color="secondary" size="large" disabled sx={{ minWidth: 320 }}>

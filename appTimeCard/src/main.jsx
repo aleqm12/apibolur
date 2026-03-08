@@ -17,6 +17,7 @@ import { CreateProject } from "./components/Project/CreateProject";
 import { CreateUsuario } from "./components/User/CreateUsuario";
 import { AdminPanel } from "./components/Admin/AdminPanel";
 import { CreateRegistrodeHoras } from "./components/TimeCard/CreateRegistrodeHoras";
+import { CreateAprobaciones } from "./components/TimeCard/CreateAprobaciones";
 const rutas=createBrowserRouter(
   [
     {
@@ -69,6 +70,10 @@ const rutas=createBrowserRouter(
         {
           path:'/registro-horas/crear',
           element: <CreateRegistrodeHoras />
+        },
+        {
+          path:'/aprobaciones/crear',
+          element: <CreateAprobaciones />
         },
         {
           path:'/user/create',
