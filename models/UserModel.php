@@ -14,7 +14,7 @@ class UserModel
 	{
 		try {
 			//Consulta sql
-			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel " .
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel " .
 				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol;";
 
 			//Ejecutar la consulta
@@ -31,7 +31,7 @@ class UserModel
 	{
 		try {
 			//Consulta sql
-			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel " .
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel " .
 				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol " .
 				"WHERE u.id_usuario='$id'";
 			//Ejecutar la consulta
@@ -89,7 +89,7 @@ class UserModel
 				return null;
 			}
 
-			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel, u.password " .
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel, u.password " .
 				"FROM usuarios u " .
 				"LEFT JOIN roles r ON r.id_rol=u.id_rol " .
 				"WHERE u.id_usuario='$idUsuario' LIMIT 1;";
@@ -125,6 +125,7 @@ class UserModel
 					'id_usuario' => $user->id_usuario,
 					'nombre' => $user->nombre,
 					'apellidos' => $user->apellidos,
+					'genero' => $user->genero,
 					'id_rol' => (int) $user->id_rol,
 					'nombre_rol' => $user->nombre_rol,
 					'nivel' => $user->nivel,
@@ -140,12 +141,13 @@ class UserModel
 			$idUsuario = addslashes($objeto->id_usuario);
 			$nombre = addslashes($objeto->nombre);
 			$apellidos = addslashes($objeto->apellidos);
+			$genero = addslashes($objeto->genero);
 			$idRol = (int) $objeto->id_rol;
 			$nivel = addslashes($objeto->nivel);
 			$hashPassword = password_hash($objeto->password, PASSWORD_BCRYPT);
 
-			$vSql = "INSERT INTO usuarios (id_usuario, nombre, apellidos, id_rol, nivel, password) " .
-				"VALUES ('$idUsuario', '$nombre', '$apellidos', $idRol, '$nivel', '$hashPassword')";
+			$vSql = "INSERT INTO usuarios (id_usuario, nombre, apellidos, genero, id_rol, nivel, password) " .
+				"VALUES ('$idUsuario', '$nombre', '$apellidos', '$genero', $idRol, '$nivel', '$hashPassword')";
 
 			$this->enlace->executeSQL_DML($vSql);
 
@@ -161,12 +163,14 @@ class UserModel
 			$idUsuario = addslashes($objeto->id_usuario);
 			$nombre = addslashes($objeto->nombre);
 			$apellidos = addslashes($objeto->apellidos);
+			$genero = addslashes($objeto->genero);
 			$idRol = (int) $objeto->id_rol;
 			$nivel = addslashes($objeto->nivel);
 
 			$vSql = "UPDATE usuarios SET " .
 				"nombre='$nombre', " .
 				"apellidos='$apellidos', " .
+				"genero='$genero', " .
 				"id_rol=$idRol, " .
 				"nivel='$nivel'";
 

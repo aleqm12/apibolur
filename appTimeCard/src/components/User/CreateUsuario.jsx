@@ -76,6 +76,7 @@ export function CreateUsuario() {
     id_usuario: 'ID de usuario',
     nombre: 'Nombre',
     apellidos: 'Apellidos',
+    genero: 'Genero',
     id_rol: 'Rol',
     nivel: 'Nivel',
     password: 'Contraseña',
@@ -87,17 +88,21 @@ export function CreateUsuario() {
   ];
 
   const nivelOptions = [
-    'Ingeniero Senior',
-    'Ingeniero I',
-    'Ingeniero II',
-    'Pasante',
     'Gerente',
+    'Ingeniero Senior',
+    'Ingeniero III',
+    'Ingeniero II',
+    'Ingeniero I',
+    'Pasante',
   ];
+
+  const generoOptions = ['Masculino', 'Femenino', 'Prefiere no decir'];
 
   const defaultValues = {
     id_usuario: '',
     nombre: '',
     apellidos: '',
+    genero: '',
     id_rol: '',
     nivel: '',
     password: '',
@@ -119,6 +124,10 @@ export function CreateUsuario() {
           .string()
           .required('Los apellidos son requeridos')
           .max(150, 'Los apellidos deben tener máximo 150 caracteres'),
+        genero: yup
+          .string()
+          .required('El genero es requerido')
+          .oneOf(generoOptions, 'Seleccione un genero valido'),
         id_rol: yup
           .number()
           .typeError('Seleccione un rol')
@@ -212,6 +221,7 @@ export function CreateUsuario() {
         id_usuario: dataForm.id_usuario,
         nombre: dataForm.nombre,
         apellidos: dataForm.apellidos,
+        genero: dataForm.genero,
         id_rol: dataForm.id_rol,
         nivel: dataForm.nivel,
       };
@@ -331,6 +341,7 @@ export function CreateUsuario() {
       id_usuario: userItem.id_usuario,
       nombre: userItem.nombre,
       apellidos: userItem.apellidos || '',
+      genero: userItem.genero || '',
       id_rol: Number(userItem.id_rol),
       nivel: userItem.nivel,
       password: '',
@@ -489,6 +500,7 @@ export function CreateUsuario() {
                       <TableCell sx={{ fontWeight: 700 }}>ID Usuario</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Apellidos</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Genero</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Rol</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Nivel</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>Acciones</TableCell>
@@ -497,7 +509,7 @@ export function CreateUsuario() {
                   <TableBody>
                     {filteredUsers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} align="center">
+                        <TableCell colSpan={7} align="center">
                           Aún no hay usuarios creados en esta sesión.
                         </TableCell>
                       </TableRow>
@@ -507,6 +519,7 @@ export function CreateUsuario() {
                           <TableCell>{userItem.id_usuario}</TableCell>
                           <TableCell>{userItem.nombre}</TableCell>
                           <TableCell>{userItem.apellidos}</TableCell>
+                          <TableCell>{userItem.genero || '-'}</TableCell>
                           <TableCell>{userItem.nombre_rol || roleOptions.find((role) => role.id_rol === Number(userItem.id_rol))?.nombre_rol || userItem.id_rol}</TableCell>
                           <TableCell>{userItem.nivel}</TableCell>
                           <TableCell align="center">
@@ -603,6 +616,33 @@ export function CreateUsuario() {
                         error={Boolean(errors.apellidos)}
                         helperText={errors.apellidos ? errors.apellidos.message : ' '}
                       />
+                    )}
+                  />
+                </Grid>
+
+                <Grid size={12} sm={6}>
+                  <Controller
+                    name="genero"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={Boolean(errors.genero)}>
+                        <InputLabel id="genero-label">Género</InputLabel>
+                        <Select
+                          {...field}
+                          labelId="genero-label"
+                          id="genero"
+                          label="Género"
+                        >
+                          {generoOptions.map((generoItem) => (
+                            <MenuItem key={generoItem} value={generoItem}>
+                              {generoItem}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <Typography variant="caption" color="error" sx={{ minHeight: 20, mt: 0.5, ml: 1.5 }}>
+                          {errors.genero ? errors.genero.message : ' '}
+                        </Typography>
+                      </FormControl>
                     )}
                   />
                 </Grid>
