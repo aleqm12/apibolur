@@ -9,12 +9,14 @@ import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import Tooltip from '@mui/material/Tooltip';
 import Paper from '@mui/material/Paper';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Menu from '@mui/material/Menu';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -40,6 +42,8 @@ export function CreateProject() {
   const [projectFilter, setProjectFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
   const [projects, setProjects] = useState([]);
+  const [subTaskMenuAnchorEl, setSubTaskMenuAnchorEl] = useState(null);
+  const [selectedProjectSubTasks, setSelectedProjectSubTasks] = useState([]);
   const [successDialog, setSuccessDialog] = useState({
     open: false,
     title: '',
@@ -205,33 +209,41 @@ export function CreateProject() {
         id_proyecto_original: editingProjectId,
       });
 
-      await SubTaskService.createSubTasksByProject(
+      const subTaskResults = await SubTaskService.createSubTasksByProject(
         dataForm.id_proyecto,
         dataForm.sub_tareas
       );
 
       await loadProjects();
 
+      const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
+
       setSuccessDialog({
         open: true,
-        title: 'Proyecto modificado correctamente',
-        message: `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        title: failedSubTasks.length > 0 ? 'Proyecto modificado con observaciones' : 'Proyecto modificado correctamente',
+        message: failedSubTasks.length > 0
+          ? `Se modificó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
+          : `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
       });
     } else {
       const projectResponse = await ProjectService.createProject(payloadProject);
       setError(projectResponse.error);
 
-      await SubTaskService.createSubTasksByProject(
+      const subTaskResults = await SubTaskService.createSubTasksByProject(
         dataForm.id_proyecto,
         dataForm.sub_tareas
       );
 
       await loadProjects();
 
+      const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
+
       setSuccessDialog({
         open: true,
-        title: 'Proyecto agregado correctamente',
-        message: `Se agregó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        title: failedSubTasks.length > 0 ? 'Proyecto agregado con observaciones' : 'Proyecto agregado correctamente',
+        message: failedSubTasks.length > 0
+          ? `Se agregó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
+          : `Se agregó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
       });
     }
 
@@ -350,6 +362,16 @@ export function CreateProject() {
       position: 'top-center',
     });
     navigate('/');
+  };
+
+  const handleOpenSubTaskMenu = (event, subTasks) => {
+    setSubTaskMenuAnchorEl(event.currentTarget);
+    setSelectedProjectSubTasks(Array.isArray(subTasks) ? subTasks : []);
+  };
+
+  const handleCloseSubTaskMenu = () => {
+    setSubTaskMenuAnchorEl(null);
+    setSelectedProjectSubTasks([]);
   };
 
   useEffect(() => {
@@ -532,7 +554,17 @@ export function CreateProject() {
                           <TableCell>{projectItem.nombre_cliente}</TableCell>
                           <TableCell>{projectItem.id_proyecto}</TableCell>
                           <TableCell>{projectItem.nombre_proyecto}</TableCell>
-                          <TableCell align="right">{projectItem.sub_tareas.length}</TableCell>
+                          <TableCell align="right">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={(event) => handleOpenSubTaskMenu(event, projectItem.sub_tareas)}
+                              disabled={!projectItem.sub_tareas?.length}
+                              endIcon={<ArrowDropDownIcon />}
+                            >
+                              {projectItem.sub_tareas?.length || 0}
+                            </Button>
+                          </TableCell>
                           <TableCell align="center">
                             <IconButton color="primary" onClick={() => handleEditProject(projectItem)}>
                               <EditIcon />
@@ -742,6 +774,23 @@ export function CreateProject() {
               </Button>
             </DialogActions>
           </Dialog>
+
+          <Menu
+            open={Boolean(subTaskMenuAnchorEl)}
+            onClose={handleCloseSubTaskMenu}
+            anchorEl={subTaskMenuAnchorEl}
+            keepMounted
+          >
+            {selectedProjectSubTasks.length === 0 ? (
+              <MenuItem disabled>Sin sub tareas</MenuItem>
+            ) : (
+              selectedProjectSubTasks.map((subTaskItem) => (
+                <MenuItem key={subTaskItem.id_subtarea} onClick={handleCloseSubTaskMenu}>
+                  {`${subTaskItem.id_subtarea} - ${subTaskItem.nombre_tarea}`}
+                </MenuItem>
+              ))
+            )}
+          </Menu>
 
           <Dialog
             open={confirmDialog.open}

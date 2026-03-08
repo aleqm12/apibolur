@@ -12,16 +12,24 @@ class SubTaskService {
   }
 
   async createSubTasksByProject(idProyecto, subTasks) {
-    const requests = subTasks.map((subTask) => {
-      const payload = {
+    const payloads = subTasks.map((subTask) => {
+      return {
         id_subtarea: subTask.id_subtarea,
         id_proyecto: idProyecto,
         nombre_tarea: subTask.nombre_tarea,
       };
+    });
+
+    const requests = payloads.map((payload) => {
       return this.createSubTask(payload);
     });
 
-    return Promise.all(requests);
+    const settledResults = await Promise.allSettled(requests);
+
+    return settledResults.map((result, index) => ({
+      ...result,
+      payload: payloads[index],
+    }));
   }
 }
 
