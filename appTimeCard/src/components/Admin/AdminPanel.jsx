@@ -1,16 +1,27 @@
+import { useState } from 'react';
 import Grid from '@mui/material/Grid2';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { Link, useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
   const navigate = useNavigate();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
+    setLogoutDialogOpen(true);
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setLogoutDialogOpen(false);
     navigate('/');
   };
 
@@ -85,6 +96,18 @@ export function AdminPanel() {
           </Stack>
         </Paper>
       </Grid>
+
+      <Dialog open={logoutDialogOpen} onClose={handleCloseLogoutDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Sesión cerrada</DialogTitle>
+        <DialogContent>
+          <Typography>La sesión se cerró correctamente.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" color="primary" onClick={handleCloseLogoutDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Grid>
   );
 }

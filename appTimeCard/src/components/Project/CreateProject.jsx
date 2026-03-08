@@ -63,6 +63,7 @@ export function CreateProject() {
   const [pendingDataForm, setPendingDataForm] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const fieldLabels = {
     id_proyecto: 'ID del proyecto',
@@ -467,10 +468,11 @@ export function CreateProject() {
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-    toast.success('Sesión cerrada correctamente', {
-      duration: 3000,
-      position: 'top-center',
-    });
+    setLogoutDialogOpen(true);
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setLogoutDialogOpen(false);
     navigate('/');
   };
 
@@ -973,6 +975,23 @@ export function CreateProject() {
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2 }}>
               <Button variant="contained" color="primary" onClick={handleCloseSuccessDialog} autoFocus>
+                Aceptar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={logoutDialogOpen}
+            onClose={handleCloseLogoutDialog}
+            maxWidth="xs"
+            fullWidth
+          >
+            <DialogTitle>Sesión cerrada</DialogTitle>
+            <DialogContent dividers>
+              <Typography>La sesión se cerró correctamente.</Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleCloseLogoutDialog} autoFocus>
                 Aceptar
               </Button>
             </DialogActions>

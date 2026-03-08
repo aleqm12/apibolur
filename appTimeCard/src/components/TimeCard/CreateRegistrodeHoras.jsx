@@ -133,6 +133,7 @@ export function CreateRegistrodeHoras() {
     title: '',
     message: '',
   });
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [rows, setRows] = useState(() => [buildEmptyRow(buildWeekDays(getTodayIso(), getDefaultPeriodEndIso(getTodayIso())))]);
 
   const weekDays = useMemo(() => buildWeekDays(periodStart, periodEnd), [periodStart, periodEnd]);
@@ -553,6 +554,11 @@ export function CreateRegistrodeHoras() {
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
+    setLogoutDialogOpen(true);
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setLogoutDialogOpen(false);
     navigate('/');
   };
 
@@ -888,6 +894,18 @@ export function CreateRegistrodeHoras() {
         <DialogActions>
           <Button onClick={closeErrorDialog} variant="contained" autoFocus>
             Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={logoutDialogOpen} onClose={handleCloseLogoutDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Sesión cerrada</DialogTitle>
+        <DialogContent>
+          <Typography>La sesión se cerró correctamente.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" color="primary" onClick={handleCloseLogoutDialog} autoFocus>
+            Aceptar
           </Button>
         </DialogActions>
       </Dialog>
