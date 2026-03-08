@@ -13,10 +13,11 @@ export function Layout({ children }) {
   const location = useLocation();
   const isHome = location.pathname === '/';
   const isCreateProject = location.pathname === '/project/crear/';
+  const isCreateRegistroHoras = location.pathname === '/registro-horas/crear/';
   const isCreateUser = location.pathname === '/user/create';
   const isAdminPanel = location.pathname === '/admin/panel';
-  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateUser && !isAdminPanel;
-  const isFullBleedPage = isHome || isCreateProject || isCreateUser || isAdminPanel;
+  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateRegistroHoras && !isCreateUser && !isAdminPanel;
+  const isFullBleedPage = isHome || isCreateProject || isCreateRegistroHoras || isCreateUser || isAdminPanel;
 
   return ( 
     <> 

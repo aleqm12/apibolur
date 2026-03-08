@@ -30,6 +30,7 @@ require_once "models/ImageModel.php";
 require_once "models/ClientModel.php";
 require_once "models/SubTaskModel.php";
 require_once "models/ProjectModel.php";
+require_once "models/RegistroHorasModel.php";
 
 /***--- Agregar todos los controladores*/
 require_once "controllers/DirectorController.php";
@@ -43,6 +44,7 @@ require_once "controllers/ImageController.php";
 require_once "controllers/UserController.php";
 require_once "controllers/SubTaskController.php";
 require_once "controllers/ProjectController.php";
+require_once "controllers/RegistroHorasController.php";
 
 //Enrutador
 require_once "routes/RoutesController.php";

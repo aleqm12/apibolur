@@ -72,7 +72,7 @@ export function Home() {
       </Typography> 
     
       <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">
-        <Button variant="contained" color="primary" size="large" component={Link} to="/project/crear/" sx={{ minWidth: 320 }}>
+        <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ minWidth: 320 }}>
           Crear una nueva hoja de tiempo
         </Button>
         <Button variant="contained" color="primary" size="large" sx={{ minWidth: 320 }}>
