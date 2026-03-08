@@ -63,7 +63,7 @@ class RegistroHorasModel
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
                 "LEFT JOIN clientes c ON c.id_cliente = p.id_cliente " .
                 "WHERE rh.id_usuario = '$idUsuario' " .
-                "ORDER BY rh.fecha DESC, rh.id_registro DESC;";
+                "ORDER BY rh.fecha ASC, rh.id_registro ASC;";
 
             return $this->enlace->executeSQL($vSql);
         } catch (Exception $e) {
@@ -102,6 +102,24 @@ class RegistroHorasModel
                 ? $objeto->registros
                 : [];
 
+            $totalEliminados = 0;
+
+            if (isset($objeto->sync_period) && is_object($objeto->sync_period)) {
+                $syncUserId = isset($objeto->sync_period->id_usuario) ? trim($objeto->sync_period->id_usuario) : '';
+                $syncFechaInicio = isset($objeto->sync_period->fecha_inicio) ? trim($objeto->sync_period->fecha_inicio) : '';
+                $syncFechaFin = isset($objeto->sync_period->fecha_fin) ? trim($objeto->sync_period->fecha_fin) : '';
+
+                if ($syncUserId !== '' && $syncFechaInicio !== '' && $syncFechaFin !== '') {
+                    $syncUserId = addslashes($syncUserId);
+                    $syncFechaInicio = addslashes($syncFechaInicio);
+                    $syncFechaFin = addslashes($syncFechaFin);
+
+                    // Sincroniza el periodo: elimina lo existente y luego inserta lo enviado por la UI.
+                    $deletePeriodSql = "DELETE FROM registro_horas WHERE id_usuario='$syncUserId' AND fecha BETWEEN '$syncFechaInicio' AND '$syncFechaFin';";
+                    $totalEliminados = $this->enlace->executeSQL_DML($deletePeriodSql);
+                }
+            }
+
             $insertados = [];
             $errores = [];
 
@@ -119,8 +137,16 @@ class RegistroHorasModel
                     continue;
                 }
 
+                if ($horas > 10) {
+                    $errores[] = [
+                        'index' => $indice,
+                        'message' => 'La cantidad máxima por día es 10 horas.',
+                    ];
+                    continue;
+                }
+
                 try {
-                    $insertados[] = $this->create($registro);
+                    $insertados[] = $this->createOrReplaceDaily($registro);
                 } catch (Exception $innerException) {
                     $errores[] = [
                         'index' => $indice,
@@ -132,9 +158,38 @@ class RegistroHorasModel
             return [
                 'insertados' => $insertados,
                 'total_insertados' => count($insertados),
+                'total_eliminados' => $totalEliminados,
                 'errores' => $errores,
                 'total_errores' => count($errores),
             ];
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
+
+    private function createOrReplaceDaily($objeto)
+    {
+        try {
+            $idUsuario = addslashes($objeto->id_usuario);
+            $idSubTarea = addslashes($objeto->id_subtarea);
+            $fecha = addslashes($objeto->fecha);
+            $horas = number_format((float) $objeto->horas, 2, '.', '');
+            $comentarios = isset($objeto->comentarios) && $objeto->comentarios !== null
+                ? "'" . addslashes($objeto->comentarios) . "'"
+                : "NULL";
+            $estadoAprobacion = isset($objeto->estado_aprobacion) && !empty($objeto->estado_aprobacion)
+                ? addslashes($objeto->estado_aprobacion)
+                : 'Pendiente';
+
+            // Mantiene un único registro por usuario/sub-tarea/fecha para permitir edición sin duplicados.
+            $deleteSql = "DELETE FROM registro_horas WHERE id_usuario='$idUsuario' AND id_subtarea='$idSubTarea' AND fecha='$fecha';";
+            $this->enlace->executeSQL_DML($deleteSql);
+
+            $insertSql = "INSERT INTO registro_horas (id_usuario, id_subtarea, fecha, horas, comentarios, estado_aprobacion) VALUES " .
+                "('$idUsuario', '$idSubTarea', '$fecha', $horas, $comentarios, '$estadoAprobacion');";
+            $idRegistro = $this->enlace->executeSQL_DML_last($insertSql);
+
+            return $this->get($idRegistro);
         } catch (Exception $e) {
             handleException($e);
         }
