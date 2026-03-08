@@ -46,6 +46,8 @@ class aprobaciones
                 'id_usuario' => isset($_GET['id_usuario']) ? $_GET['id_usuario'] : '',
                 'estado_resultante' => isset($_GET['estado_resultante']) ? $_GET['estado_resultante'] : '',
                 'id_proyecto' => isset($_GET['id_proyecto']) ? $_GET['id_proyecto'] : '',
+                'fecha_desde' => isset($_GET['fecha_desde']) ? $_GET['fecha_desde'] : '',
+                'fecha_hasta' => isset($_GET['fecha_hasta']) ? $_GET['fecha_hasta'] : '',
             ];
 
             $result = $aprobacionM->historial($filters);

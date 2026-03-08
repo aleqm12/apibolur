@@ -147,6 +147,8 @@ class AprobacionModel
             $idUsuarioDecision = isset($filters['id_usuario']) ? trim($filters['id_usuario']) : '';
             $estadoResultante = isset($filters['estado_resultante']) ? trim($filters['estado_resultante']) : '';
             $idProyecto = isset($filters['id_proyecto']) ? trim($filters['id_proyecto']) : '';
+            $fechaDesde = isset($filters['fecha_desde']) ? trim($filters['fecha_desde']) : '';
+            $fechaHasta = isset($filters['fecha_hasta']) ? trim($filters['fecha_hasta']) : '';
 
             $where = [];
 
@@ -165,6 +167,16 @@ class AprobacionModel
                 $where[] = "st.id_proyecto = '$idProyecto'";
             }
 
+            if ($fechaDesde !== '') {
+                $fechaDesde = addslashes($fechaDesde);
+                $where[] = "DATE(a.fecha_decision) >= '$fechaDesde'";
+            }
+
+            if ($fechaHasta !== '') {
+                $fechaHasta = addslashes($fechaHasta);
+                $where[] = "DATE(a.fecha_decision) <= '$fechaHasta'";
+            }
+
             $whereSql = '';
             if (!empty($where)) {
                 $whereSql = ' WHERE ' . implode(' AND ', $where);
@@ -172,12 +184,14 @@ class AprobacionModel
 
             $vSql = "SELECT a.id_aprobacion, a.id_registro, a.id_usuario AS id_usuario_decisor, a.estado_resultante, a.motivo_rechazo, a.fecha_decision, " .
                 "rh.id_usuario AS id_usuario_colaborador, rh.fecha, rh.horas, rh.comentarios, " .
-                "u.nombre, u.apellidos, st.id_proyecto, st.nombre_tarea, p.nombre_proyecto " .
+                "u.nombre, u.apellidos, st.id_proyecto, st.nombre_tarea, p.nombre_proyecto, " .
+                "ud.nombre AS nombre_decisor, ud.apellidos AS apellidos_decisor " .
                 "FROM aprobaciones a " .
                 "INNER JOIN registro_horas rh ON rh.id_registro = a.id_registro " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
                 "LEFT JOIN usuarios u ON u.id_usuario = rh.id_usuario " .
+                "LEFT JOIN usuarios ud ON ud.id_usuario = a.id_usuario " .
                 $whereSql .
                 " ORDER BY a.fecha_decision DESC, a.id_aprobacion DESC;";
 

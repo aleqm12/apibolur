@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -42,6 +43,8 @@ export function HistorialAprobaciones() {
   const [filterEstado, setFilterEstado] = useState('Todos');
   const [filterProyecto, setFilterProyecto] = useState('');
   const [filterDecisor, setFilterDecisor] = useState('');
+  const [filterFechaDesde, setFilterFechaDesde] = useState('');
+  const [filterFechaHasta, setFilterFechaHasta] = useState('');
   const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
@@ -81,6 +84,8 @@ export function HistorialAprobaciones() {
           estado_resultante: filterEstado,
           id_proyecto: filterProyecto,
           id_usuario: filterDecisor,
+          fecha_desde: filterFechaDesde,
+          fecha_hasta: filterFechaHasta,
         });
         setRows(Array.isArray(response?.data) ? response.data : []);
       } catch {
@@ -95,7 +100,7 @@ export function HistorialAprobaciones() {
     };
 
     loadHistory();
-  }, [currentUser, filterEstado, filterProyecto, filterDecisor]);
+  }, [currentUser, filterEstado, filterProyecto, filterDecisor, filterFechaDesde, filterFechaHasta]);
 
   const proyectoOptions = useMemo(() => {
     const unique = new Map();
@@ -106,8 +111,19 @@ export function HistorialAprobaciones() {
   }, [rows]);
 
   const decisorOptions = useMemo(() => {
-    const unique = new Set(rows.map((row) => row.id_usuario_decisor).filter(Boolean));
-    return [...unique];
+    const uniqueMap = new Map();
+
+    rows.forEach((row) => {
+      const decisorId = row.id_usuario_decisor;
+      if (!decisorId || uniqueMap.has(decisorId)) {
+        return;
+      }
+
+      const decisorNombre = `${row.nombre_decisor || ''} ${row.apellidos_decisor || ''}`.trim();
+      uniqueMap.set(decisorId, decisorNombre || decisorId);
+    });
+
+    return [...uniqueMap.entries()].map(([id, nombre]) => ({ id, nombre }));
   }, [rows]);
 
   const handleLogout = () => {
@@ -170,16 +186,36 @@ export function HistorialAprobaciones() {
             </Select>
 
             <Select size="small" value={filterDecisor} displayEmpty onChange={(event) => setFilterDecisor(event.target.value)} sx={{ minWidth: 220 }}>
-              <MenuItem value="">Decisor: Todos</MenuItem>
+              <MenuItem value="">Administrador: Todos</MenuItem>
               {decisorOptions.map((item) => (
-                <MenuItem key={item} value={item}>{item}</MenuItem>
+                <MenuItem key={item.id} value={item.id}>{item.nombre}</MenuItem>
               ))}
             </Select>
+
+            <TextField
+              size="small"
+              type="date"
+              label="Desde"
+              value={filterFechaDesde}
+              onChange={(event) => setFilterFechaDesde(event.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              size="small"
+              type="date"
+              label="Hasta"
+              value={filterFechaHasta}
+              onChange={(event) => setFilterFechaHasta(event.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
 
             <Button variant="outlined" onClick={() => {
               setFilterEstado('Todos');
               setFilterProyecto('');
               setFilterDecisor('');
+              setFilterFechaDesde('');
+              setFilterFechaHasta('');
             }}>
               Limpiar
             </Button>
@@ -196,7 +232,7 @@ export function HistorialAprobaciones() {
                 <TableCell align="right">Horas</TableCell>
                 <TableCell align="center">Resultado</TableCell>
                 <TableCell>Motivo rechazo</TableCell>
-                <TableCell>Usuario decisor</TableCell>
+                <TableCell>Administrador</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -225,7 +261,7 @@ export function HistorialAprobaciones() {
                       />
                     </TableCell>
                     <TableCell>{row.motivo_rechazo || '-'}</TableCell>
-                    <TableCell>{row.id_usuario_decisor}</TableCell>
+                    <TableCell>{`${row.nombre_decisor || ''} ${row.apellidos_decisor || ''}`.trim() || row.id_usuario_decisor}</TableCell>
                   </TableRow>
                 ))
               )}
