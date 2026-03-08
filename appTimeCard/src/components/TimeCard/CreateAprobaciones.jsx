@@ -200,21 +200,25 @@ export function CreateAprobaciones() {
 
   const isAllSelected = displayRows.length > 0 && selectedIds.length === displayRows.length;
 
-  const getChipColor = (estado) => {
-    if (estado === 'Aprobado') {
-      return 'success';
-    }
-    if (estado === 'Rechazado') {
-      return 'error';
-    }
-    return 'warning';
-  };
-
   const pendienteChipSx = {
     bgcolor: '#ffeb3b',
     color: '#4e342e',
     fontWeight: 700,
     border: '1px solid rgba(78, 52, 46, 0.25)',
+  };
+
+  const aprobadoChipSx = {
+    bgcolor: '#d8f3dc',
+    color: '#1b4332',
+    fontWeight: 700,
+    border: '1px solid rgba(27, 67, 50, 0.18)',
+  };
+
+  const rechazadoChipSx = {
+    bgcolor: '#fde2e4',
+    color: '#9d0208',
+    fontWeight: 700,
+    border: '1px solid rgba(157, 2, 8, 0.18)',
   };
 
   const toggleSelectAll = (checked) => {
@@ -451,6 +455,7 @@ export function CreateAprobaciones() {
                 displayRows.map((row) => {
                   const isSelected = selectedIds.includes(row.id_registro);
                   const rowProjectColor = projectColorMap[row.id_proyecto || 'SIN-PROYECTO'] || '#7A1E3A';
+                  const estadoRow = row.estado_aprobacion || 'Pendiente';
                   return (
                     <TableRow
                       key={row.id_registro}
@@ -472,9 +477,8 @@ export function CreateAprobaciones() {
                       <TableCell align="center">{Number(row.horas || 0).toFixed(1)}</TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={(row.estado_aprobacion || 'Pendiente').toUpperCase()}
-                          color={row.estado_aprobacion === 'Pendiente' ? 'default' : getChipColor(row.estado_aprobacion)}
-                          sx={row.estado_aprobacion === 'Pendiente' ? pendienteChipSx : undefined}
+                          label={estadoRow.toUpperCase()}
+                          sx={estadoRow === 'Aprobado' ? aprobadoChipSx : estadoRow === 'Rechazado' ? rechazadoChipSx : pendienteChipSx}
                           size="small"
                         />
                       </TableCell>

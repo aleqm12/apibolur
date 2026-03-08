@@ -129,6 +129,20 @@ const pendienteChipSx = {
   border: '1px solid rgba(78, 52, 46, 0.25)',
 };
 
+const aprobadoChipSx = {
+  bgcolor: '#d8f3dc',
+  color: '#1b4332',
+  fontWeight: 700,
+  border: '1px solid rgba(27, 67, 50, 0.18)',
+};
+
+const rechazadoChipSx = {
+  bgcolor: '#fde2e4',
+  color: '#9d0208',
+  fontWeight: 700,
+  border: '1px solid rgba(157, 2, 8, 0.18)',
+};
+
 const enviadoChipSx = {
   bgcolor: '#2e7d32',
   color: '#ffffff',
@@ -144,7 +158,10 @@ export function CreateRegistrodeHoras() {
   const periodEndQuery = searchParams.get('fin');
   const isEditMode = modo === 'editar' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
   const isDraftMode = modo === 'draft' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
-  const isFixedPeriodMode = isEditMode || isDraftMode;
+  const isViewMode = modo === 'ver' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
+  const isViewDraftMode = modo === 'ver-borrador' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
+  const isReadOnlyMode = isViewMode || isViewDraftMode;
+  const isFixedPeriodMode = isEditMode || isDraftMode || isReadOnlyMode;
   const storedAuthUser = localStorage.getItem('authUser');
   let currentUser = null;
 
@@ -337,7 +354,7 @@ export function CreateRegistrodeHoras() {
       return;
     }
 
-    if (isEditMode) {
+    if (isEditMode || isViewMode) {
       loadRowsByUserAndPeriod();
       return;
     }
@@ -347,7 +364,7 @@ export function CreateRegistrodeHoras() {
       setRows([buildEmptyRow(weekDays)]);
       setEstadoEnvio('pendiente');
     }
-  }, [projects, isEditMode, loadRowsByUserAndPeriod, loadDraftByPeriod, weekDays]);
+  }, [projects, isEditMode, isViewMode, loadRowsByUserAndPeriod, loadDraftByPeriod, weekDays]);
 
   const handleAddRow = () => {
     markAsPendingIfSent();
@@ -562,6 +579,10 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleSaveDraft = () => {
+    if (isReadOnlyMode) {
+      return;
+    }
+
     if (!draftStorageKey) {
       toast.error('No fue posible guardar el borrador.');
       return;
@@ -602,6 +623,19 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleSaveAndSend = async () => {
+    if (isReadOnlyMode) {
+      return;
+    }
+
+    if (isEditMode && estadoEnvio === 'enviado') {
+      setSuccessDialog({
+        open: true,
+        title: 'Sin cambios detectados',
+        message: 'La hoja no tuvo cambios. Se mantiene en estado enviado.',
+      });
+      return;
+    }
+
     const { registros, validationErrors } = parseRowsToPayload();
 
     if (validationErrors.length > 0) {
@@ -784,7 +818,15 @@ export function CreateRegistrodeHoras() {
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {isEditMode ? 'Editar hoja de tiempo' : isDraftMode ? 'Editar borrador de hoja' : 'Nueva hoja de tiempo'}
+                {isViewMode
+                  ? 'Ver hoja de tiempo'
+                  : isViewDraftMode
+                    ? 'Ver borrador de hoja'
+                    : isEditMode
+                      ? 'Editar hoja de tiempo'
+                      : isDraftMode
+                        ? 'Editar borrador de hoja'
+                        : 'Nueva hoja de tiempo'}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
                 {userFullName || 'Usuario'}
@@ -880,14 +922,17 @@ export function CreateRegistrodeHoras() {
         </Stack>
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2 }}>
-          <Button variant="outlined" onClick={handleAddRow}>
+          <Button variant="outlined" onClick={handleAddRow} disabled={isReadOnlyMode}>
             Nueva fila
           </Button>
-          <Button variant="outlined" color="error" onClick={handleDeleteRows} disabled={selectedRowIds.length === 0}>
+          <Button variant="outlined" color="error" onClick={handleDeleteRows} disabled={isReadOnlyMode || selectedRowIds.length === 0}>
             Borrar
           </Button>
-          <Button variant="outlined" onClick={handleSaveDraft} disabled={isSaving}>
+          <Button variant="outlined" onClick={handleSaveDraft} disabled={isReadOnlyMode || isSaving}>
             Guardar
+          </Button>
+          <Button variant="outlined" color="secondary" onClick={() => navigate('/')}>
+            Cancelar
           </Button>
         </Stack>
 
@@ -924,6 +969,7 @@ export function CreateRegistrodeHoras() {
                 const subTasks = getSubTasksByProject(row.id_proyecto);
                 const rowTotal = sumHours(row.horasPorDia);
                 const isRowSelected = selectedRowIds.includes(row.id);
+                const estadoRow = row.estado_aprobacion_display || row.estado_aprobacion || 'Pendiente';
 
                 return (
                   <TableRow
@@ -939,6 +985,7 @@ export function CreateRegistrodeHoras() {
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={isRowSelected}
+                        disabled={isReadOnlyMode}
                         onChange={(event) => handleToggleRow(row.id, event.target.checked)}
                       />
                     </TableCell>
@@ -952,6 +999,7 @@ export function CreateRegistrodeHoras() {
                         size="small"
                         fullWidth
                         displayEmpty
+                        disabled={isReadOnlyMode}
                       >
                         <MenuItem value="">Seleccione</MenuItem>
                         {projects.map((project) => (
@@ -968,7 +1016,7 @@ export function CreateRegistrodeHoras() {
                         size="small"
                         fullWidth
                         displayEmpty
-                        disabled={!row.id_proyecto}
+                        disabled={isReadOnlyMode || !row.id_proyecto}
                       >
                         <MenuItem value="">Seleccione</MenuItem>
                         {subTasks.map((subTask) => (
@@ -985,21 +1033,16 @@ export function CreateRegistrodeHoras() {
                         size="small"
                         placeholder="Notas adicionales..."
                         fullWidth
+                        disabled={isReadOnlyMode}
                       />
                     </TableCell>
                     <TableCell sx={{ minWidth: 150 }}>
                       <Stack spacing={0.5}>
                         <Chip
-                          label={(row.estado_aprobacion_display || 'Pendiente').toUpperCase()}
-                          color={row.estado_aprobacion_display === 'Pendiente' ? 'default' : row.estado_aprobacion_display === 'Aprobado' ? 'success' : 'error'}
-                          sx={row.estado_aprobacion_display === 'Pendiente' ? pendienteChipSx : undefined}
+                          label={estadoRow.toUpperCase()}
+                          sx={estadoRow === 'Aprobado' ? aprobadoChipSx : estadoRow === 'Rechazado' ? rechazadoChipSx : pendienteChipSx}
                           size="small"
                         />
-                        {row.estado_aprobacion_display === 'Rechazado' && row.rechazoFeedbackText ? (
-                          <Typography variant="caption" sx={{ color: '#b42318', maxWidth: 220 }}>
-                            {row.rechazoFeedbackText}
-                          </Typography>
-                        ) : null}
                       </Stack>
                     </TableCell>
                     {weekDays.map((day) => (
@@ -1014,6 +1057,7 @@ export function CreateRegistrodeHoras() {
                           inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.5 }}
                           onChange={(event) => handleHourChange(row.id, day.iso, event.target.value)}
                           sx={{ width: 108 }}
+                          disabled={isReadOnlyMode}
                         />
                       </TableCell>
                     ))}
@@ -1059,14 +1103,14 @@ export function CreateRegistrodeHoras() {
           <Button
             variant="contained"
             onClick={handleSaveAndSend}
-            disabled={isSaving}
+            disabled={isReadOnlyMode || isSaving}
             sx={{
               bgcolor: '#7A1E3A',
               color: '#ffffff',
               '&:hover': { bgcolor: '#61172e' },
             }}
           >
-            {isSaving ? 'Enviando...' : 'Guardar y enviar a revision'}
+            {isReadOnlyMode ? 'Modo lectura' : isSaving ? 'Enviando...' : 'Guardar y enviar a revision'}
           </Button>
         </Stack>
 

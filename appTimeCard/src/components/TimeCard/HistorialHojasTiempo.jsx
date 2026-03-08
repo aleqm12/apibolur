@@ -8,6 +8,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -15,22 +17,16 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
 const DRAFT_STORAGE_PREFIX = 'timeSheetDraft';
-
-const getChipColor = (estado) => {
-  if (estado === 'Aprobado') {
-    return 'success';
-  }
-  if (estado === 'Rechazado') {
-    return 'error';
-  }
-  return 'warning';
-};
 
 const pendienteChipSx = {
   bgcolor: '#ffeb3b',
@@ -40,10 +36,24 @@ const pendienteChipSx = {
 };
 
 const enviadoChipSx = {
-  bgcolor: '#2e7d32',
-  color: '#ffffff',
+  bgcolor: '#d8f3dc',
+  color: '#1b4332',
   fontWeight: 700,
-  border: '1px solid rgba(255, 255, 255, 0.2)',
+  border: '1px solid rgba(27, 67, 50, 0.18)',
+};
+
+const aprobadoChipSx = {
+  bgcolor: '#d8f3dc',
+  color: '#1b4332',
+  fontWeight: 700,
+  border: '1px solid rgba(27, 67, 50, 0.18)',
+};
+
+const rechazadoChipSx = {
+  bgcolor: '#fde2e4',
+  color: '#9d0208',
+  fontWeight: 700,
+  border: '1px solid rgba(157, 2, 8, 0.18)',
 };
 
 export function HistorialHojasTiempo() {
@@ -55,6 +65,7 @@ export function HistorialHojasTiempo() {
   const [filterDesde, setFilterDesde] = useState('');
   const [filterHasta, setFilterHasta] = useState('');
   const [selectedSheetKey, setSelectedSheetKey] = useState('');
+  const [feedbackDialog, setFeedbackDialog] = useState({ open: false, title: '', text: '' });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -125,12 +136,16 @@ export function HistorialHojasTiempo() {
           totalRegistros: 0,
           totalHoras: 0,
           estados: new Set(),
+          feedbacks: new Set(),
         };
       }
 
       accumulator[key].totalRegistros += 1;
       accumulator[key].totalHoras += Number(row.horas || 0);
       accumulator[key].estados.add(row.estado_aprobacion || 'Pendiente');
+      if ((row.estado_aprobacion || '') === 'Rechazado' && row.motivo_rechazo_admin) {
+        accumulator[key].feedbacks.add(row.motivo_rechazo_admin);
+      }
 
       return accumulator;
     }, {});
@@ -152,6 +167,7 @@ export function HistorialHojasTiempo() {
           ...sheet,
           estadoHoja,
           estadoEnvio: 'Enviado',
+          feedbackResumen: [...sheet.feedbacks].join(' | ') || '-',
           source: 'db',
         };
       })
@@ -213,6 +229,7 @@ export function HistorialHojasTiempo() {
             totalHoras: totalHorasDraft,
             estadoHoja: 'Pendiente',
             estadoEnvio: 'Pendiente de envio',
+            feedbackResumen: '-',
             source: 'draft',
           });
         } catch {
@@ -237,9 +254,9 @@ export function HistorialHojasTiempo() {
 
   const totalHoras = useMemo(() => sheets.reduce((acc, item) => acc + Number(item.totalHoras || 0), 0), [sheets]);
 
-  const handleOpenSelectedSheet = () => {
+  const handleOpenSelectedSheet = (viewMode = false) => {
     if (!selectedSheetKey) {
-      toast.error('Seleccione una hoja para editar.');
+      toast.error('Seleccione una hoja para continuar.');
       return;
     }
 
@@ -249,8 +266,28 @@ export function HistorialHojasTiempo() {
       return;
     }
 
-    const modoDestino = selectedSheet.source === 'draft' ? 'draft' : 'editar';
+    let modoDestino = selectedSheet.source === 'draft' ? 'draft' : 'editar';
+    if (viewMode) {
+      modoDestino = selectedSheet.source === 'draft' ? 'ver-borrador' : 'ver';
+    }
     navigate(`/registro-horas/crear?modo=${modoDestino}&inicio=${selectedSheet.periodStart}&fin=${selectedSheet.periodEnd}`);
+  };
+
+  const handleOpenFeedbackDialog = (sheet) => {
+    const text = sheet?.feedbackResumen || '-';
+    if (text === '-') {
+      return;
+    }
+
+    setFeedbackDialog({
+      open: true,
+      title: `Retroalimentacion ${sheet.periodStart} a ${sheet.periodEnd}`,
+      text,
+    });
+  };
+
+  const handleCloseFeedbackDialog = () => {
+    setFeedbackDialog({ open: false, title: '', text: '' });
   };
 
   const headerActionButtonSx = {
@@ -305,7 +342,10 @@ export function HistorialHojasTiempo() {
             }}>
               Limpiar
             </Button>
-            <Button variant="contained" onClick={handleOpenSelectedSheet}>
+            <Button variant="outlined" onClick={() => handleOpenSelectedSheet(true)}>
+              Ver hoja seleccionada
+            </Button>
+            <Button variant="contained" onClick={() => handleOpenSelectedSheet(false)}>
               Editar hoja seleccionada
             </Button>
           </Stack>
@@ -322,16 +362,17 @@ export function HistorialHojasTiempo() {
                 <TableCell align="right">Horas</TableCell>
                 <TableCell align="center">Estado Envio</TableCell>
                 <TableCell align="center">Estado</TableCell>
+                <TableCell>Retroalimentacion</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">Cargando historial...</TableCell>
+                  <TableCell colSpan={7} align="center">Cargando historial...</TableCell>
                 </TableRow>
               ) : sheets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">No hay hojas con los filtros actuales.</TableCell>
+                  <TableCell colSpan={7} align="center">No hay hojas con los filtros actuales.</TableCell>
                 </TableRow>
               ) : (
                 sheets.map((sheet) => (
@@ -352,10 +393,36 @@ export function HistorialHojasTiempo() {
                     <TableCell align="center">
                       <Chip
                         size="small"
-                        color={sheet.estadoHoja === 'Pendiente' ? 'default' : getChipColor(sheet.estadoHoja)}
-                        sx={sheet.estadoHoja === 'Pendiente' ? pendienteChipSx : undefined}
+                        sx={sheet.estadoHoja === 'Aprobado' ? aprobadoChipSx : sheet.estadoHoja === 'Rechazado' ? rechazadoChipSx : pendienteChipSx}
                         label={(sheet.estadoHoja || 'Pendiente').toUpperCase()}
                       />
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 320 }}>
+                      {sheet.feedbackResumen && sheet.feedbackResumen !== '-' ? (
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Tooltip title="Esta hoja tiene retroalimentacion" arrow>
+                            <WarningAmberOutlinedIcon sx={{ color: '#b26a00', fontSize: 20 }} />
+                          </Tooltip>
+                          <Tooltip title={sheet.feedbackResumen} arrow placement="top-start">
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                maxWidth: 220,
+                              }}
+                            >
+                              {sheet.feedbackResumen}
+                            </Typography>
+                          </Tooltip>
+                          <Button size="small" variant="outlined" onClick={() => handleOpenFeedbackDialog(sheet)}>
+                            Ver
+                          </Button>
+                        </Stack>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -364,6 +431,18 @@ export function HistorialHojasTiempo() {
           </Table>
         </TableContainer>
       </Box>
+
+      <Dialog open={feedbackDialog.open} onClose={handleCloseFeedbackDialog} fullWidth maxWidth="sm">
+        <DialogTitle>{feedbackDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ whiteSpace: 'pre-wrap' }}>{feedbackDialog.text}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseFeedbackDialog} autoFocus>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

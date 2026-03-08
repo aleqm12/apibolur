@@ -16,21 +16,25 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
-const getChipColor = (estado) => {
-  if (estado === 'Aprobado') {
-    return 'success';
-  }
-  if (estado === 'Rechazado') {
-    return 'error';
-  }
-  return 'warning';
-};
-
 const pendienteChipSx = {
   bgcolor: '#ffeb3b',
   color: '#4e342e',
   fontWeight: 700,
   border: '1px solid rgba(78, 52, 46, 0.25)',
+};
+
+const aprobadoChipSx = {
+  bgcolor: '#d8f3dc',
+  color: '#1b4332',
+  fontWeight: 700,
+  border: '1px solid rgba(27, 67, 50, 0.18)',
+};
+
+const rechazadoChipSx = {
+  bgcolor: '#fde2e4',
+  color: '#9d0208',
+  fontWeight: 700,
+  border: '1px solid rgba(157, 2, 8, 0.18)',
 };
 
 export function ActiveTimeSheet() {
@@ -157,7 +161,15 @@ export function ActiveTimeSheet() {
                   <TableCell colSpan={6} align="center">No hay registros en la semana activa.</TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
+                rows.map((row) => {
+                  const estadoRow = row.estado_aprobacion || 'Pendiente';
+                  const chipSx = estadoRow === 'Aprobado'
+                    ? aprobadoChipSx
+                    : estadoRow === 'Rechazado'
+                      ? rechazadoChipSx
+                      : pendienteChipSx;
+
+                  return (
                   <TableRow key={row.id_registro} hover>
                     <TableCell>{format(parseISO(row.fecha), 'yyyy-MM-dd')}</TableCell>
                     <TableCell>[{row.id_proyecto}] {row.nombre_proyecto || row.id_proyecto} / {row.nombre_tarea || row.id_subtarea}</TableCell>
@@ -165,19 +177,19 @@ export function ActiveTimeSheet() {
                     <TableCell align="center">
                       <Chip
                         size="small"
-                        color={row.estado_aprobacion === 'Pendiente' ? 'default' : getChipColor(row.estado_aprobacion)}
-                        sx={row.estado_aprobacion === 'Pendiente' ? pendienteChipSx : undefined}
-                        label={(row.estado_aprobacion || 'Pendiente').toUpperCase()}
+                        sx={chipSx}
+                        label={estadoRow.toUpperCase()}
                       />
                     </TableCell>
                     <TableCell>{row.comentarios || '-'}</TableCell>
                     <TableCell>
-                      {row.estado_aprobacion === 'Rechazado'
+                      {estadoRow === 'Rechazado'
                         ? row.motivo_rechazo_admin || 'Sin comentario del administrador.'
                         : '-'}
                     </TableCell>
                   </TableRow>
-                ))
+                );
+                })
               )}
             </TableBody>
           </Table>

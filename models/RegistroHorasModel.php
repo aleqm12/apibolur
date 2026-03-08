@@ -129,6 +129,7 @@ class RegistroHorasModel
             $totalEliminados = 0;
             $errores = [];
             $registrosValidos = [];
+            $registrosKeys = [];
 
             foreach ($registros as $indice => $registro) {
                 $idUsuario = isset($registro->id_usuario) ? trim($registro->id_usuario) : '';
@@ -153,6 +154,7 @@ class RegistroHorasModel
                 }
 
                 $registrosValidos[] = $registro;
+                $registrosKeys[$idSubTarea . '|' . $fecha] = true;
             }
 
             if (isset($objeto->sync_period) && is_object($objeto->sync_period) && (!empty($registrosValidos) || $allowEmptySync)) {
@@ -165,9 +167,30 @@ class RegistroHorasModel
                     $syncFechaInicio = addslashes($syncFechaInicio);
                     $syncFechaFin = addslashes($syncFechaFin);
 
-                    // Sincroniza el periodo: elimina lo existente y luego inserta lo enviado por la UI.
-                    $deletePeriodSql = "DELETE FROM registro_horas WHERE id_usuario='$syncUserId' AND fecha BETWEEN '$syncFechaInicio' AND '$syncFechaFin';";
-                    $totalEliminados = $this->enlace->executeSQL_DML($deletePeriodSql);
+                    // Sincroniza el periodo de forma segura: solo elimina registros ausentes sin historial de aprobaciones.
+                    $existingSql = "SELECT id_registro, id_subtarea, fecha FROM registro_horas WHERE id_usuario='$syncUserId' AND fecha BETWEEN '$syncFechaInicio' AND '$syncFechaFin';";
+                    $existingRows = $this->enlace->executeSQL($existingSql);
+                    if (!is_array($existingRows)) {
+                        $existingRows = [];
+                    }
+
+                    foreach ($existingRows as $existingRow) {
+                        $idRegistroExistente = isset($existingRow->id_registro) ? (int) $existingRow->id_registro : 0;
+                        $idSubTareaExistente = isset($existingRow->id_subtarea) ? trim($existingRow->id_subtarea) : '';
+                        $fechaExistente = isset($existingRow->fecha) ? trim($existingRow->fecha) : '';
+                        $registroKey = $idSubTareaExistente . '|' . $fechaExistente;
+
+                        if (isset($registrosKeys[$registroKey])) {
+                            continue;
+                        }
+
+                        if ($idRegistroExistente > 0 && $this->hasApprovalHistory($idRegistroExistente)) {
+                            continue;
+                        }
+
+                        $deleteSql = "DELETE FROM registro_horas WHERE id_registro = $idRegistroExistente;";
+                        $totalEliminados += (int) $this->enlace->executeSQL_DML($deleteSql);
+                    }
                 }
             }
 
@@ -210,9 +233,34 @@ class RegistroHorasModel
                 ? addslashes($objeto->estado_aprobacion)
                 : 'Pendiente';
 
-            // Mantiene un único registro por usuario/sub-tarea/fecha para permitir edición sin duplicados.
-            $deleteSql = "DELETE FROM registro_horas WHERE id_usuario='$idUsuario' AND id_subtarea='$idSubTarea' AND fecha='$fecha';";
-            $this->enlace->executeSQL_DML($deleteSql);
+            $existingSql = "SELECT id_registro, horas, comentarios, estado_aprobacion FROM registro_horas " .
+                "WHERE id_usuario='$idUsuario' AND id_subtarea='$idSubTarea' AND fecha='$fecha' LIMIT 1;";
+            $existingRows = $this->enlace->executeSQL($existingSql);
+
+            if (!empty($existingRows)) {
+                $existing = $existingRows[0];
+                $idRegistro = isset($existing->id_registro) ? (int) $existing->id_registro : 0;
+
+                $existingHoras = isset($existing->horas) ? (float) $existing->horas : 0;
+                $newHoras = (float) $horas;
+
+                $existingComentarios = isset($existing->comentarios) ? trim((string) $existing->comentarios) : '';
+                $newComentariosRaw = isset($objeto->comentarios) && $objeto->comentarios !== null
+                    ? trim((string) $objeto->comentarios)
+                    : '';
+
+                $hasChanges = abs($existingHoras - $newHoras) > 0.0001 || $existingComentarios !== $newComentariosRaw;
+                $estadoActual = isset($existing->estado_aprobacion) && trim((string) $existing->estado_aprobacion) !== ''
+                    ? addslashes(trim((string) $existing->estado_aprobacion))
+                    : 'Pendiente';
+                $estadoAActualizar = $hasChanges ? 'Pendiente' : $estadoActual;
+
+                $updateSql = "UPDATE registro_horas SET horas = $horas, comentarios = $comentarios, estado_aprobacion = '$estadoAActualizar' " .
+                    "WHERE id_registro = $idRegistro;";
+                $this->enlace->executeSQL_DML($updateSql);
+
+                return $this->get($idRegistro);
+            }
 
             $insertSql = "INSERT INTO registro_horas (id_usuario, id_subtarea, fecha, horas, comentarios, estado_aprobacion) VALUES " .
                 "('$idUsuario', '$idSubTarea', '$fecha', $horas, $comentarios, '$estadoAprobacion');";
@@ -222,6 +270,25 @@ class RegistroHorasModel
         } catch (Exception $e) {
             handleException($e);
         }
+    }
+
+    private function hasApprovalHistory($idRegistro)
+    {
+        $idRegistro = (int) $idRegistro;
+        if ($idRegistro <= 0) {
+            return false;
+        }
+
+        $sql = "SELECT COUNT(*) AS total FROM aprobaciones WHERE id_registro = $idRegistro;";
+        $result = $this->enlace->executeSQL($sql);
+
+        if (empty($result)) {
+            return false;
+        }
+
+        $first = $result[0];
+        $total = isset($first->total) ? (int) $first->total : 0;
+        return $total > 0;
     }
 
     public function delete($idRegistro)

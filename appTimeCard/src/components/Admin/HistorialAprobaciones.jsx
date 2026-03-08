@@ -17,11 +17,18 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AprobacionesService from '../../services/AprobacionesService';
 
-const getChipColor = (estado) => {
-  if (estado === 'Aprobado') {
-    return 'success';
-  }
-  return 'error';
+const aprobadoChipSx = {
+  bgcolor: '#d8f3dc',
+  color: '#1b4332',
+  fontWeight: 700,
+  border: '1px solid rgba(27, 67, 50, 0.18)',
+};
+
+const rechazadoChipSx = {
+  bgcolor: '#fde2e4',
+  color: '#9d0208',
+  fontWeight: 700,
+  border: '1px solid rgba(157, 2, 8, 0.18)',
 };
 
 export function HistorialAprobaciones() {
@@ -199,7 +206,11 @@ export function HistorialAprobaciones() {
                     <TableCell>[{row.id_proyecto}] {row.nombre_proyecto || row.id_proyecto} / {row.nombre_tarea || '-'}</TableCell>
                     <TableCell align="right">{Number(row.horas || 0).toFixed(2)}</TableCell>
                     <TableCell align="center">
-                      <Chip size="small" color={getChipColor(row.estado_resultante)} label={(row.estado_resultante || '').toUpperCase()} />
+                      <Chip
+                        size="small"
+                        sx={row.estado_resultante === 'Aprobado' ? aprobadoChipSx : rechazadoChipSx}
+                        label={(row.estado_resultante || '').toUpperCase()}
+                      />
                     </TableCell>
                     <TableCell>{row.motivo_rechazo || '-'}</TableCell>
                     <TableCell>{row.id_usuario_decisor}</TableCell>
