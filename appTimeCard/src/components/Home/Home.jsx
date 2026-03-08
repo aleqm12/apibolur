@@ -93,21 +93,34 @@ export function Home() {
         color="secondary.main" 
         gutterBottom 
       > 
-        Bienvenido(a)
+        Hola, {nombreCompleto || 'Usuario'}
         </Typography> 
-      <Typography variant="h5" align="center" color="secondary.main" sx={{ mb: 2, fontWeight: 600 }}> 
-        {nombreCompleto || 'Usuario'}
+      <Typography variant="h6" align="center" color="secondary.main" sx={{ mb: 2, fontWeight: 600 }}> 
+        ¿Qué deseas hacer hoy?
       </Typography> 
     
       <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">
         <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ minWidth: 320 }}>
           Crear una nueva hoja de tiempo
         </Button>
-        <Button variant="outlined" color="secondary" size="large" component={Link} to="/registro-horas/historial" sx={{ minWidth: 320 }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="large"
+          component={Link}
+          to="/registro-horas/historial"
+          sx={{
+            minWidth: 320,
+            borderRadius: 1.5,
+            '&:hover': {
+              backgroundColor: '#1f4b74',
+            },
+          }}
+        >
           Historial de Hojas de Tiempo
         </Button>
-        <Button variant="outlined" color="secondary" size="large" component={Link} to="/admin/panel" sx={{ minWidth: 320 }}>
-          Panel de Administración
+        <Button variant="outlined" color="secondary" size="large" component={Link} to="/user/logout" sx={{ minWidth: 320 }}>
+          Cerrar sesión
         </Button>
       </Stack>
       </Box>

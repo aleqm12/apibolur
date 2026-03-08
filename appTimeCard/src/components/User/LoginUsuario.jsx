@@ -75,7 +75,7 @@ export function LoginUsuario() {
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
 
-      toast.success(`Bienvenido(a), ${authUser.nombre}.`);
+      toast.success(`Inicio de sesión correcto para ${authUser.nombre}.`);
 
       if (isAdminUser(authUser)) {
         navigate('/admin/panel');
