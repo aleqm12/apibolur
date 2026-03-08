@@ -636,6 +636,18 @@ export function CreateProject() {
                     </Select>
                   </FormControl>
                 </Grid>
+                <Grid size={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setProjectFilter('');
+                      setClientFilter('');
+                    }}
+                    disabled={!projectFilter && !clientFilter}
+                  >
+                    Limpiar filtros
+                  </Button>
+                </Grid>
               </Grid>
             </Paper>
           </Grid>

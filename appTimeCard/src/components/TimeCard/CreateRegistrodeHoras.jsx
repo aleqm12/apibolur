@@ -119,6 +119,8 @@ export function CreateRegistrodeHoras() {
   const [periodStart, setPeriodStart] = useState(() => getTodayIso());
   const [periodEnd, setPeriodEnd] = useState(() => getDefaultPeriodEndIso(getTodayIso()));
   const [projects, setProjects] = useState([]);
+  const [filterCliente, setFilterCliente] = useState('');
+  const [filterBusqueda, setFilterBusqueda] = useState('');
   const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [successDialog, setSuccessDialog] = useState({
@@ -332,6 +334,41 @@ export function CreateRegistrodeHoras() {
   const totalHoras = useMemo(() => {
     return rows.reduce((accumulator, row) => accumulator + sumHours(row.horasPorDia), 0);
   }, [rows]);
+
+  const clientOptions = useMemo(() => {
+    const optionMap = {};
+
+    rows.forEach((row) => {
+      const currentProject = projectMap[row.id_proyecto];
+      const idCliente = (currentProject?.id_cliente || '').trim();
+      const nombreCliente = (currentProject?.nombre_cliente || '').trim();
+
+      if (!idCliente || !nombreCliente) {
+        return;
+      }
+
+      optionMap[idCliente] = nombreCliente;
+    });
+
+    return Object.entries(optionMap)
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [rows, projectMap]);
+
+  const filteredRows = useMemo(() => {
+    const search = filterBusqueda.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      const currentProject = projectMap[row.id_proyecto];
+      const projectName = (currentProject?.nombre_proyecto || '').toLowerCase();
+      const idCliente = (currentProject?.id_cliente || '').toLowerCase();
+
+      const matchesCliente = !filterCliente || idCliente === filterCliente.toLowerCase();
+      const matchesSearch = !search || projectName.includes(search);
+
+      return matchesCliente && matchesSearch;
+    });
+  }, [rows, filterCliente, filterBusqueda, projectMap]);
 
   const parseRowsToPayload = () => {
     const validationErrors = [];
@@ -618,6 +655,40 @@ export function CreateRegistrodeHoras() {
       <Divider />
 
       <Box sx={{ px: { xs: 1, md: 2 }, pb: 4 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ pt: 2, pb: 1 }}>
+          <Select
+            value={filterCliente}
+            onChange={(event) => setFilterCliente(event.target.value)}
+            size="small"
+            displayEmpty
+            sx={{ minWidth: 260 }}
+          >
+            <MenuItem value="">Filtrar por cliente</MenuItem>
+            {clientOptions.map((client) => (
+              <MenuItem key={client.id} value={client.id}>
+                {client.nombre}
+              </MenuItem>
+            ))}
+          </Select>
+          <TextField
+            value={filterBusqueda}
+            onChange={(event) => setFilterBusqueda(event.target.value)}
+            size="small"
+            placeholder="Buscar por nombre del proyecto..."
+            sx={{ minWidth: { xs: '100%', md: 420 } }}
+          />
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilterCliente('');
+              setFilterBusqueda('');
+            }}
+            disabled={!filterCliente && !filterBusqueda}
+          >
+            Limpiar filtros
+          </Button>
+        </Stack>
+
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2 }}>
           <Button variant="outlined" onClick={handleAddRow}>
             Nueva fila
@@ -658,7 +729,7 @@ export function CreateRegistrodeHoras() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => {
+              {filteredRows.map((row) => {
                 const selectedProject = projectMap[row.id_proyecto];
                 const subTasks = getSubTasksByProject(row.id_proyecto);
                 const rowTotal = sumHours(row.horasPorDia);
@@ -750,6 +821,13 @@ export function CreateRegistrodeHoras() {
                   </TableRow>
                 );
               })}
+              {filteredRows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7 + weekDays.length} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                    No hay filas que coincidan con los filtros aplicados.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
