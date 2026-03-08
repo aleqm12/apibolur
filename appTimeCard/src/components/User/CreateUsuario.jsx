@@ -65,6 +65,11 @@ export function CreateUsuario() {
     title: '',
     message: '',
   });
+  const [errorDialog, setErrorDialog] = useState({
+    open: false,
+    title: '',
+    messages: [],
+  });
 
   const fieldLabels = {
     id_usuario: 'ID de usuario',
@@ -163,18 +168,38 @@ export function CreateUsuario() {
       .map(([key]) => fieldLabels[key] || key);
 
     if (missingFields.length > 0) {
-      toast.error(`Faltan campos obligatorios: ${missingFields.join(', ')}`);
+      setErrorDialog({
+        open: true,
+        title: 'Faltan campos obligatorios',
+        messages: missingFields.map((fieldName) => `Complete el campo: ${fieldName}`),
+      });
       return;
     }
 
     const firstErrorMessage = Object.values(formErrors)[0]?.message;
     if (firstErrorMessage) {
-      toast.error(firstErrorMessage);
+      setErrorDialog({
+        open: true,
+        title: 'Revise el formulario',
+        messages: [firstErrorMessage],
+      });
     }
   };
 
   const onSubmit = async (dataForm) => {
     try {
+      if (!isEditMode) {
+        const duplicatedUser = users.find((userItem) => userItem.id_usuario === dataForm.id_usuario);
+        if (duplicatedUser) {
+          setErrorDialog({
+            open: true,
+            title: 'No se puede crear el usuario',
+            messages: [`El ID ${dataForm.id_usuario} ya existe. Ingrese una cédula distinta.`],
+          });
+          return;
+        }
+      }
+
       const payloadUser = {
         id_usuario: dataForm.id_usuario,
         nombre: dataForm.nombre,
@@ -240,7 +265,15 @@ export function CreateUsuario() {
         throw new Error('Respuesta no válida del servidor');
       }
       setError(submitError);
-      toast.error(isEditMode ? 'No se pudo modificar el usuario' : 'No se pudo crear el usuario');
+      setErrorDialog({
+        open: true,
+        title: isEditMode ? 'No se pudo modificar el usuario' : 'No se pudo crear el usuario',
+        messages: [
+          isEditMode
+            ? 'Ocurrió un error al modificar el usuario.'
+            : 'Ocurrió un error al crear el usuario.',
+        ],
+      });
       console.error(submitError);
     }
   };
@@ -260,6 +293,14 @@ export function CreateUsuario() {
       open: false,
       title: '',
       message: '',
+    });
+  };
+
+  const handleCloseErrorDialog = () => {
+    setErrorDialog({
+      open: false,
+      title: '',
+      messages: [],
     });
   };
 
@@ -375,7 +416,7 @@ export function CreateUsuario() {
                     },
                   }}
                 >
-                  Volver al Panel
+                  Volver al Menú
                 </Button>
                 <Button
                   variant="contained"
@@ -426,14 +467,14 @@ export function CreateUsuario() {
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
               <TableContainer>
                 <Table size="small">
-                  <TableHead>
+                  <TableHead sx={{ backgroundColor: 'action.hover' }}>
                     <TableRow>
-                      <TableCell>ID Usuario</TableCell>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Apellidos</TableCell>
-                      <TableCell>Rol</TableCell>
-                      <TableCell>Nivel</TableCell>
-                      <TableCell align="center">Acciones</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>ID Usuario</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Apellidos</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Rol</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Nivel</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -504,7 +545,7 @@ export function CreateUsuario() {
                           pattern: '[0-9]*',
                         }}
                         error={Boolean(errors.id_usuario)}
-                        helperText={errors.id_usuario ? errors.id_usuario.message : 'Solo números, sin guiones. Ejemplo: 115130776'}
+                        helperText={errors.id_usuario ? errors.id_usuario.message : 'Ingrese la cédula de la persona, solo números y sin guiones. Ejemplo: 115130776'}
                       />
                     )}
                   />
@@ -653,6 +694,29 @@ export function CreateUsuario() {
                 onClick={handleSubmit(onSubmit, onError)}
               >
                 Guardar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={errorDialog.open}
+            onClose={handleCloseErrorDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>{errorDialog.title}</DialogTitle>
+            <DialogContent dividers>
+              <Grid container spacing={1}>
+                {errorDialog.messages.map((messageItem, index) => (
+                  <Grid size={12} key={`${messageItem}-${index}`}>
+                    <Typography>{`• ${messageItem}`}</Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="contained" color="primary" onClick={handleCloseErrorDialog} autoFocus>
+                Aceptar
               </Button>
             </DialogActions>
           </Dialog>

@@ -23,8 +23,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -40,7 +38,6 @@ export function CreateProject() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [projectFilter, setProjectFilter] = useState('');
-  const [clientFilter, setClientFilter] = useState('');
   const [projects, setProjects] = useState([]);
   const [subTaskMenuAnchorEl, setSubTaskMenuAnchorEl] = useState(null);
   const [selectedProjectSubTasks, setSelectedProjectSubTasks] = useState([]);
@@ -482,23 +479,19 @@ export function CreateProject() {
 
   const filteredProjects = useMemo(() => {
     return projects.filter((projectItem) => {
+      const filterText = projectFilter.trim().toLowerCase();
       const matchesProject =
-        projectFilter.trim() === '' ||
+        filterText === '' ||
+        projectItem.id_proyecto
+          .toLowerCase()
+          .includes(filterText) ||
         projectItem.nombre_proyecto
           .toLowerCase()
-          .includes(projectFilter.trim().toLowerCase());
+          .includes(filterText);
 
-      const matchesClient =
-        clientFilter.trim() === '' ||
-        (projectItem.nombre_cliente || '').toLowerCase() === clientFilter.toLowerCase();
-
-      return matchesProject && matchesClient;
+      return matchesProject;
     });
-  }, [projects, projectFilter, clientFilter]);
-
-  const clientOptions = useMemo(() => {
-    return [...new Set(projects.map((projectItem) => projectItem.nombre_cliente).filter(Boolean))].sort();
-  }, [projects]);
+  }, [projects, projectFilter]);
 
   if (error && error.message) return <p>Error: {error.message}</p>;
 
@@ -556,7 +549,7 @@ export function CreateProject() {
                     },
                   }}
                 >
-                  Volver al Panel
+                  Volver al Menú
                 </Button>
                 <Button
                   variant="contained"
@@ -593,35 +586,12 @@ export function CreateProject() {
 
           <Grid size={12} sx={{ px: { xs: 2, md: 3 }, mb: 1 }}>
             <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Buscar Proyecto (Nombre)"
-                    value={projectFilter}
-                    onChange={(event) => setProjectFilter(event.target.value)}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel id="cliente-filter-label">Filtrar por Cliente</InputLabel>
-                    <Select
-                      labelId="cliente-filter-label"
-                      id="cliente-filter"
-                      value={clientFilter}
-                      label="Filtrar por Cliente"
-                      onChange={(event) => setClientFilter(event.target.value)}
-                    >
-                      <MenuItem value="">Todos los clientes</MenuItem>
-                      {clientOptions.map((clientId) => (
-                        <MenuItem key={clientId} value={clientId}>
-                          {clientId}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
+              <TextField
+                fullWidth
+                label="Buscar Proyecto (ID o Nombre)"
+                value={projectFilter}
+                onChange={(event) => setProjectFilter(event.target.value)}
+              />
             </Paper>
           </Grid>
 
@@ -629,14 +599,14 @@ export function CreateProject() {
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
               <TableContainer>
                 <Table size="small">
-                  <TableHead>
+                  <TableHead sx={{ backgroundColor: 'action.hover' }}>
                     <TableRow>
-                      <TableCell>ID Cliente</TableCell>
-                      <TableCell>Cliente</TableCell>
-                      <TableCell>ID Proyecto</TableCell>
-                      <TableCell>Nombre del Proyecto</TableCell>
-                      <TableCell align="right">Sub Tareas</TableCell>
-                      <TableCell align="center">Acciones</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>ID Cliente</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Cliente</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>ID Proyecto</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Nombre del Proyecto</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Sub Tareas</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -769,9 +739,6 @@ export function CreateProject() {
           <Grid size={12} sx={{ m: 1, mt: 3 }}>
             <Typography variant="h6" gutterBottom>
               Sub tareas del proyecto
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Estas sub tareas se almacenan en la tabla sub_tareas.
             </Typography>
           </Grid>
 

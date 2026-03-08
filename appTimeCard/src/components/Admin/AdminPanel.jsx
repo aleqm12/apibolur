@@ -8,6 +8,12 @@ import { Link, useNavigate } from 'react-router-dom';
 export function AdminPanel() {
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/');
+  };
+
   return (
     <Grid container spacing={1}>
       <Grid
@@ -45,7 +51,7 @@ export function AdminPanel() {
           >
             <Button
               variant="outlined"
-              onClick={() => navigate('/')}
+              onClick={handleLogout}
               sx={{
                 color: 'secondary.contrastText',
                 borderColor: 'secondary.contrastText',
@@ -55,7 +61,7 @@ export function AdminPanel() {
                 },
               }}
             >
-              Volver a Home
+              Cerrar Sesión
             </Button>
           </Grid>
         </Grid>
