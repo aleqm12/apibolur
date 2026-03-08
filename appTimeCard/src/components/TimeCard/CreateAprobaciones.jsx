@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import AprobacionesService from '../../services/AprobacionesService';
 import RegistroHorasService from '../../services/RegistroHorasService';
+import GrammarSuggestionService from '../../services/GrammarSuggestionService';
 
 export function CreateAprobaciones() {
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ export function CreateAprobaciones() {
   const [filterEstado, setFilterEstado] = useState('Pendiente');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectSuggestions, setRejectSuggestions] = useState([]);
+  const [isCheckingRejectText, setIsCheckingRejectText] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState({
     open: false,
@@ -291,6 +294,7 @@ export function CreateAprobaciones() {
 
       setRejectDialogOpen(false);
       setRejectReason('');
+      setRejectSuggestions([]);
       await loadRows();
     } catch {
       setErrorDialog({
@@ -321,6 +325,32 @@ export function CreateAprobaciones() {
     await submitDecision('Rechazado', selectedRows, rejectReason);
   };
 
+  useEffect(() => {
+    if (!rejectDialogOpen) {
+      return;
+    }
+
+    const normalizedText = (rejectReason || '').trim();
+    if (normalizedText.length < 8) {
+      setRejectSuggestions([]);
+      setIsCheckingRejectText(false);
+      return;
+    }
+
+    const timerId = setTimeout(async () => {
+      setIsCheckingRejectText(true);
+      const suggestions = await GrammarSuggestionService.checkText(normalizedText, 'es');
+      setRejectSuggestions(suggestions);
+      setIsCheckingRejectText(false);
+    }, 700);
+
+    return () => clearTimeout(timerId);
+  }, [rejectReason, rejectDialogOpen]);
+
+  const handleApplyRejectSuggestion = (suggestion) => {
+    setRejectReason((current) => GrammarSuggestionService.applySuggestion(current, suggestion));
+  };
+
   const handleSingleDecision = async (row, estadoResultante) => {
     if (estadoResultante === 'Rechazado') {
       setSelectedIds([row.id_registro]);
@@ -328,6 +358,12 @@ export function CreateAprobaciones() {
       return;
     }
     await submitDecision(estadoResultante, [row]);
+  };
+
+  const handleCloseRejectDialog = () => {
+    setRejectDialogOpen(false);
+    setRejectSuggestions([]);
+    setIsCheckingRejectText(false);
   };
 
   const handleLogout = () => {
@@ -548,7 +584,7 @@ export function CreateAprobaciones() {
         </Stack>
       </Box>
 
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={rejectDialogOpen} onClose={handleCloseRejectDialog} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar registros seleccionados</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>
@@ -561,10 +597,34 @@ export function CreateAprobaciones() {
             minRows={4}
             fullWidth
             label="Motivo del rechazo"
+            helperText={
+              isCheckingRejectText
+                ? 'Revisando ortografia y redaccion...'
+                : rejectSuggestions.length > 0
+                  ? rejectSuggestions[0].replacement
+                    ? `Sugerencia: cambiar "${rejectSuggestions[0].original}" por "${rejectSuggestions[0].replacement}".`
+                    : `Sugerencia: ${rejectSuggestions[0].message}`
+                  : ' '
+            }
           />
+          {rejectSuggestions.length > 0 ? (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+              {rejectSuggestions.map((suggestion, index) => (
+                <Button
+                  key={`${suggestion.offset}-${index}`}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleApplyRejectSuggestion(suggestion)}
+                  disabled={!suggestion.replacement}
+                >
+                  {suggestion.replacement ? `Aplicar: ${suggestion.replacement}` : 'Ver sugerencia'}
+                </Button>
+              ))}
+            </Stack>
+          ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handleCloseRejectDialog}>Cancelar</Button>
           <Button variant="contained" color="error" onClick={handleConfirmReject}>
             Confirmar rechazo
           </Button>

@@ -27,6 +27,7 @@ import { es } from 'date-fns/locale';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProjectService from '../../services/ProjectService';
 import RegistroHorasService from '../../services/RegistroHorasService';
+import GrammarSuggestionService from '../../services/GrammarSuggestionService';
 
 const HORAS_MAXIMAS_DIA = 10;
 const MAX_DIAS_PERIODO = 14;
@@ -199,6 +200,8 @@ export function CreateRegistrodeHoras() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [estadoEnvio, setEstadoEnvio] = useState('pendiente');
   const [rows, setRows] = useState(() => [buildEmptyRow(buildWeekDays(getTodayIso(), getDefaultPeriodEndIso(getTodayIso())))]);
+  const [commentSuggestionsByRowId, setCommentSuggestionsByRowId] = useState({});
+  const [commentCheckingByRowId, setCommentCheckingByRowId] = useState({});
 
   const weekDays = useMemo(() => buildWeekDays(periodStart, periodEnd), [periodStart, periodEnd]);
   const draftStorageKey = useMemo(() => {
@@ -426,6 +429,45 @@ export function CreateRegistrodeHoras() {
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       comentarios,
+    }));
+  };
+
+  const handleReviewComment = async (rowId, comentarios) => {
+    const normalizedText = (comentarios || '').trim();
+
+    if (normalizedText.length < 8) {
+      setCommentSuggestionsByRowId((current) => ({
+        ...current,
+        [rowId]: [],
+      }));
+      setCommentCheckingByRowId((current) => ({
+        ...current,
+        [rowId]: false,
+      }));
+      return;
+    }
+
+    setCommentCheckingByRowId((current) => ({
+      ...current,
+      [rowId]: true,
+    }));
+
+    const suggestions = await GrammarSuggestionService.checkText(normalizedText, 'es');
+
+    setCommentSuggestionsByRowId((current) => ({
+      ...current,
+      [rowId]: suggestions,
+    }));
+    setCommentCheckingByRowId((current) => ({
+      ...current,
+      [rowId]: false,
+    }));
+  };
+
+  const handleApplyCommentSuggestion = (rowId, suggestion) => {
+    updateRow(rowId, (currentRow) => ({
+      ...currentRow,
+      comentarios: GrammarSuggestionService.applySuggestion(currentRow.comentarios || '', suggestion),
     }));
   };
 
@@ -999,6 +1041,8 @@ export function CreateRegistrodeHoras() {
                 const rowTotal = sumHours(row.horasPorDia);
                 const isRowSelected = selectedRowIds.includes(row.id);
                 const estadoRow = row.estado_aprobacion_display || row.estado_aprobacion || 'Pendiente';
+                const rowSuggestions = commentSuggestionsByRowId[row.id] || [];
+                const isCheckingRowComment = Boolean(commentCheckingByRowId[row.id]);
 
                 return (
                   <TableRow
@@ -1056,14 +1100,37 @@ export function CreateRegistrodeHoras() {
                       </Select>
                     </TableCell>
                     <TableCell sx={{ minWidth: 220 }}>
-                      <TextField
-                        value={row.comentarios}
-                        onChange={(event) => handleCommentChange(row.id, event.target.value)}
-                        size="small"
-                        placeholder="Notas adicionales..."
-                        fullWidth
-                        disabled={isReadOnlyMode}
-                      />
+                      <Stack spacing={0.5}>
+                        <TextField
+                          value={row.comentarios}
+                          onChange={(event) => handleCommentChange(row.id, event.target.value)}
+                          onBlur={(event) => handleReviewComment(row.id, event.target.value)}
+                          size="small"
+                          placeholder="Notas adicionales..."
+                          helperText={
+                            isCheckingRowComment
+                              ? 'Revisando ortografia...'
+                              : rowSuggestions.length > 0
+                                ? rowSuggestions[0].replacement
+                                  ? `Sugerencia: "${rowSuggestions[0].original}" -> "${rowSuggestions[0].replacement}"`
+                                  : `Sugerencia: ${rowSuggestions[0].message}`
+                                : ' '
+                          }
+                          fullWidth
+                          disabled={isReadOnlyMode}
+                        />
+                        {rowSuggestions.length > 0 && rowSuggestions[0].replacement ? (
+                          <Button
+                            size="small"
+                            variant="text"
+                            sx={{ alignSelf: 'flex-start', px: 0 }}
+                            onClick={() => handleApplyCommentSuggestion(row.id, rowSuggestions[0])}
+                            disabled={isReadOnlyMode}
+                          >
+                            Aplicar sugerencia
+                          </Button>
+                        ) : null}
+                      </Stack>
                     </TableCell>
                     <TableCell sx={{ minWidth: 150 }}>
                       <Stack spacing={0.5}>
