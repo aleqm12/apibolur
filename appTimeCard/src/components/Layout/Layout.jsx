@@ -16,9 +16,10 @@ export function Layout({ children }) {
   const isCreateRegistroHoras = location.pathname.startsWith('/registro-horas/crear');
   const isCreateAprobaciones = location.pathname.startsWith('/aprobaciones/crear');
   const isCreateUser = location.pathname === '/user/create';
+  const isLoginPage = location.pathname === '/user/login' || location.pathname === '/user/logout';
   const isAdminPanel = location.pathname === '/admin/panel';
-  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateRegistroHoras && !isCreateAprobaciones && !isCreateUser && !isAdminPanel;
-  const isFullBleedPage = isHome || isCreateProject || isCreateRegistroHoras || isCreateAprobaciones || isCreateUser || isAdminPanel;
+  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateRegistroHoras && !isCreateAprobaciones && !isCreateUser && !isLoginPage && !isAdminPanel;
+  const isFullBleedPage = isHome || isCreateProject || isCreateRegistroHoras || isCreateAprobaciones || isCreateUser || isLoginPage || isAdminPanel;
 
   return ( 
     <> 

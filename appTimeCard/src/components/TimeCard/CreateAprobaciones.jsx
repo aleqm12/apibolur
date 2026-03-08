@@ -24,10 +24,9 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import AprobacionesService from '../../services/AprobacionesService';
 
-const ADMIN_USER_ID = '115130776';
-
 export function CreateAprobaciones() {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -37,6 +36,31 @@ export function CreateAprobaciones() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const storedAuthUser = localStorage.getItem('authUser');
+
+    if (!storedAuthUser) {
+      navigate('/user/login');
+      return;
+    }
+
+    try {
+      const parsedAuthUser = JSON.parse(storedAuthUser);
+      const isAdmin = String(parsedAuthUser?.id_rol) === '1' || parsedAuthUser?.nombre_rol === 'Administrador';
+
+      if (!isAdmin) {
+        navigate('/');
+        return;
+      }
+
+      setCurrentUser(parsedAuthUser);
+    } catch {
+      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
+      navigate('/user/login');
+    }
+  }, [navigate]);
 
   const loadRows = useCallback(async () => {
     try {
@@ -139,7 +163,7 @@ export function CreateAprobaciones() {
 
     try {
       const payload = {
-        id_usuario: ADMIN_USER_ID,
+        id_usuario: currentUser?.id_usuario || 'ADMIN',
         decisiones: targetRows.map((row) => ({
           id_registro: row.id_registro,
           estado_resultante: estadoResultante,

@@ -67,4 +67,28 @@ class user
             handleException($e);
         }
     }
+
+    public function login()
+    {
+        try {
+            $request = new Request();
+            $response = new Response();
+            $inputJSON = $request->getJSON();
+
+            $userM = new UserModel();
+            $result = $userM->login($inputJSON);
+
+            if ($result === null) {
+                $response->status(401)->toJSON([
+                    'status' => 'error',
+                    'message' => 'Credenciales invalidas',
+                ]);
+                return;
+            }
+
+            $response->toJSON($result);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
 }

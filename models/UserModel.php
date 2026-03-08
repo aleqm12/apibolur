@@ -82,7 +82,54 @@ class UserModel
 	public function login($objeto)
 	{
 		try {
+			$idUsuario = isset($objeto->id_usuario) ? addslashes(trim($objeto->id_usuario)) : '';
+			$password = isset($objeto->password) ? (string) $objeto->password : '';
 
+			if ($idUsuario === '' || $password === '') {
+				return null;
+			}
+
+			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.id_rol, r.nombre_rol, u.nivel, u.password " .
+				"FROM usuarios u " .
+				"LEFT JOIN roles r ON r.id_rol=u.id_rol " .
+				"WHERE u.id_usuario='$idUsuario' LIMIT 1;";
+
+			$vResultado = $this->enlace->ExecuteSQL($vSql);
+			if (empty($vResultado)) {
+				return null;
+			}
+
+			$user = $vResultado[0];
+			$storedPassword = isset($user->password) ? (string) $user->password : '';
+
+			// Soporta hashes bcrypt y, solo por compatibilidad, contrasena en texto plano.
+			$isPasswordValid = password_verify($password, $storedPassword) || $password === $storedPassword;
+			if (!$isPasswordValid) {
+				return null;
+			}
+
+			$tokenPayload = [
+				'iat' => time(),
+				'exp' => time() + (60 * 60 * 8),
+				'data' => [
+					'id_usuario' => $user->id_usuario,
+					'id_rol' => $user->id_rol,
+				],
+			];
+
+			$token = JWT::encode($tokenPayload, Config::get('SECRET_KEY'), 'HS256');
+
+			return [
+				'token' => $token,
+				'user' => [
+					'id_usuario' => $user->id_usuario,
+					'nombre' => $user->nombre,
+					'apellidos' => $user->apellidos,
+					'id_rol' => (int) $user->id_rol,
+					'nombre_rol' => $user->nombre_rol,
+					'nivel' => $user->nivel,
+				],
+			];
 		} catch (Exception $e) {
 			handleException($e);
 		}

@@ -15,6 +15,8 @@ import { CreateMovie } from "./components/Movie/CreateMovie";
 import { UpdateMovie } from "./components/Movie/UpdateMovie";
 import { CreateProject } from "./components/Project/CreateProject";
 import { CreateUsuario } from "./components/User/CreateUsuario";
+import { LoginUsuario } from "./components/User/LoginUsuario";
+import { LogoutUsuario } from "./components/User/LogoutUsuario";
 import { AdminPanel } from "./components/Admin/AdminPanel";
 import { CreateRegistrodeHoras } from "./components/TimeCard/CreateRegistrodeHoras";
 import { CreateAprobaciones } from "./components/TimeCard/CreateAprobaciones";
@@ -78,6 +80,14 @@ const rutas=createBrowserRouter(
         {
           path:'/user/create',
           element: <CreateUsuario />
+        },
+        {
+          path:'/user/login',
+          element: <LoginUsuario />
+        },
+        {
+          path:'/user/logout',
+          element: <LogoutUsuario />
         },
         {
           path:'/admin/panel',

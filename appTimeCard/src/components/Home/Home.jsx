@@ -1,10 +1,38 @@
+import { useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography'; 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export function Home() { 
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const storedAuthUser = localStorage.getItem('authUser');
+
+    if (!storedAuthUser) {
+      navigate('/user/login');
+      return;
+    }
+
+    try {
+      const parsedAuthUser = JSON.parse(storedAuthUser);
+      setCurrentUser(parsedAuthUser);
+    } catch {
+      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
+      navigate('/user/login');
+    }
+  }, [navigate]);
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const nombreCompleto = `${currentUser.nombre || ''} ${currentUser.apellidos || ''}`.trim();
+
   return ( 
     <Box
       sx={{
@@ -68,7 +96,7 @@ export function Home() {
         Bienvenido
         </Typography> 
       <Typography variant="h5" align="center" color="secondary.main" sx={{ mb: 2, fontWeight: 600 }}> 
-        Alejandro Quesada Molina
+        {nombreCompleto || 'Usuario'}
       </Typography> 
     
       <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">

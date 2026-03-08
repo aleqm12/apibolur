@@ -7,6 +7,10 @@ class UserService {
     return axios.get(BASE_URL);
   }
 
+  login(credentials) {
+    return axios.post(`${BASE_URL}/login`, JSON.stringify(credentials));
+  }
+
   createUser(user) {
     return axios.post(BASE_URL, JSON.stringify(user));
   }

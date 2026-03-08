@@ -114,8 +114,23 @@ const pendienteChipSx = {
 
 export function CreateRegistrodeHoras() {
   const navigate = useNavigate();
-  const idUsuario = '115130776';
-  const userInitials = 'AQ';
+  const storedAuthUser = localStorage.getItem('authUser');
+  let currentUser = null;
+
+  try {
+    currentUser = storedAuthUser ? JSON.parse(storedAuthUser) : null;
+  } catch {
+    currentUser = null;
+  }
+
+  const idUsuario = currentUser?.id_usuario || '';
+  const userFullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
+  const userInitials = userFullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0].toUpperCase())
+    .join('') || 'US';
   const [periodStart, setPeriodStart] = useState(() => getTodayIso());
   const [periodEnd, setPeriodEnd] = useState(() => getDefaultPeriodEndIso(getTodayIso()));
   const [projects, setProjects] = useState([]);
@@ -148,6 +163,11 @@ export function CreateRegistrodeHoras() {
   }, [weekDays]);
 
   useEffect(() => {
+    if (!idUsuario) {
+      navigate('/user/login');
+      return;
+    }
+
     const loadProjects = async () => {
       try {
         const response = await ProjectService.getProjects();
@@ -158,7 +178,7 @@ export function CreateRegistrodeHoras() {
     };
 
     loadProjects();
-  }, []);
+  }, [idUsuario, navigate]);
 
   const projectMap = useMemo(() => {
     return projects.reduce((accumulator, project) => {
@@ -613,7 +633,7 @@ export function CreateRegistrodeHoras() {
                 Hoja de tiempo
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-                Alejandro Quesada
+                {userFullName || 'Usuario'}
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 700 }}>
                 ID: {idUsuario || 'sin definir'}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Grid from '@mui/material/Grid2';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -13,6 +13,38 @@ import { Link, useNavigate } from 'react-router-dom';
 export function AdminPanel() {
   const navigate = useNavigate();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const storedAuthUser = localStorage.getItem('authUser');
+
+    if (!storedAuthUser) {
+      navigate('/user/login');
+      return;
+    }
+
+    try {
+      const parsedAuthUser = JSON.parse(storedAuthUser);
+      const isAdmin = String(parsedAuthUser?.id_rol) === '1' || parsedAuthUser?.nombre_rol === 'Administrador';
+
+      if (!isAdmin) {
+        navigate('/');
+        return;
+      }
+
+      setCurrentUser(parsedAuthUser);
+    } catch {
+      localStorage.removeItem('authUser');
+      localStorage.removeItem('authToken');
+      navigate('/user/login');
+    }
+  }, [navigate]);
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const fullName = `${currentUser.nombre || ''} ${currentUser.apellidos || ''}`.trim();
 
   const handleLogout = () => {
     localStorage.clear();
@@ -43,7 +75,7 @@ export function AdminPanel() {
               BÖLUR ENGINEERS
             </Typography>
             <Typography variant="body2" sx={{ color: 'secondary.contrastText' }}>
-              Usuario: Alejandro Quesada Molina
+              Usuario: {fullName || currentUser.id_usuario}
             </Typography>
           </Grid>
 
