@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Button from '@mui/material/Button';
@@ -23,15 +24,21 @@ import { useNavigate } from 'react-router-dom';
 import ProjectService from '../../services/ProjectService';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
-const ESTADOS = ['Pendiente', 'Aprobado', 'Rechazado'];
 const HORAS_MAXIMAS_DIA = 24;
-const CANTIDAD_DIAS = 7;
+const MAX_DIAS_PERIODO = 14;
+const MIN_HORAS_REGISTRO = 1;
 
 const getTodayIso = () => format(new Date(), 'yyyy-MM-dd');
+const getDefaultPeriodEndIso = (periodStart) => format(addDays(parseISO(periodStart), 6), 'yyyy-MM-dd');
+const getMaxPeriodEndIso = (periodStart) => format(addDays(parseISO(periodStart), MAX_DIAS_PERIODO - 1), 'yyyy-MM-dd');
 
-const buildWeekDays = (periodStart) => {
+const buildWeekDays = (periodStart, periodEnd) => {
   const startDate = parseISO(periodStart);
-  return Array.from({ length: CANTIDAD_DIAS }, (_, index) => {
+  const endDate = parseISO(periodEnd);
+  const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  const safeTotalDays = Number.isFinite(totalDays) && totalDays > 0 ? totalDays : 1;
+
+  return Array.from({ length: safeTotalDays }, (_, index) => {
     const date = addDays(startDate, index);
     return {
       iso: format(date, 'yyyy-MM-dd'),
@@ -66,7 +73,12 @@ const normalizeHourValue = (value) => {
     return '';
   }
 
-  return numericValue > HORAS_MAXIMAS_DIA ? HORAS_MAXIMAS_DIA : numericValue;
+  if (numericValue > 0 && numericValue < MIN_HORAS_REGISTRO) {
+    return MIN_HORAS_REGISTRO;
+  }
+
+  const normalizedValue = Math.round(numericValue * 2) / 2;
+  return normalizedValue > HORAS_MAXIMAS_DIA ? HORAS_MAXIMAS_DIA : normalizedValue;
 };
 
 const sumHours = (hoursByDay) => {
@@ -81,36 +93,23 @@ const sumHours = (hoursByDay) => {
 
 const pendienteChipSx = {
   bgcolor: '#ffeb3b',
-  color: '#1f2937',
+  color: '#4e342e',
   fontWeight: 700,
-};
-
-const getEstadoChipColor = (estado) => {
-  if (estado === 'Aprobado') {
-    return 'success';
-  }
-
-  if (estado === 'Rechazado') {
-    return 'error';
-  }
-
-  return 'default';
-};
-
-const getEstadoChipSx = (estado) => {
-  return estado === 'Pendiente' ? pendienteChipSx : undefined;
+  border: '1px solid rgba(78, 52, 46, 0.25)',
 };
 
 export function CreateRegistrodeHoras() {
   const navigate = useNavigate();
   const idUsuario = '115130776';
-  const [periodStart, setPeriodStart] = useState(getTodayIso());
+  const userInitials = 'AQ';
+  const [periodStart, setPeriodStart] = useState(() => getTodayIso());
+  const [periodEnd, setPeriodEnd] = useState(() => getDefaultPeriodEndIso(getTodayIso()));
   const [projects, setProjects] = useState([]);
   const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [rows, setRows] = useState(() => [buildEmptyRow(buildWeekDays(getTodayIso()))]);
+  const [rows, setRows] = useState(() => [buildEmptyRow(buildWeekDays(getTodayIso(), getDefaultPeriodEndIso(getTodayIso())))]);
 
-  const weekDays = useMemo(() => buildWeekDays(periodStart), [periodStart]);
+  const weekDays = useMemo(() => buildWeekDays(periodStart, periodEnd), [periodStart, periodEnd]);
 
   useEffect(() => {
     setRows((currentRows) =>
@@ -191,13 +190,6 @@ export function CreateRegistrodeHoras() {
     }));
   };
 
-  const handleStatusChange = (rowId, estadoAprobacion) => {
-    updateRow(rowId, (currentRow) => ({
-      ...currentRow,
-      estado_aprobacion: estadoAprobacion,
-    }));
-  };
-
   const handleHourChange = (rowId, dayIso, value) => {
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
@@ -249,13 +241,18 @@ export function CreateRegistrodeHoras() {
             return null;
           }
 
+          if (horas < MIN_HORAS_REGISTRO) {
+            validationErrors.push(`La cantidad mínima por día es ${MIN_HORAS_REGISTRO} hr.`);
+            return null;
+          }
+
           return {
             id_usuario: idUsuario.trim(),
             id_subtarea: row.id_subtarea,
             fecha: day.iso,
             horas: Number(horas.toFixed(2)),
             comentarios: row.comentarios?.trim() ? row.comentarios.trim() : null,
-            estado_aprobacion: row.estado_aprobacion,
+            estado_aprobacion: 'Pendiente',
           };
         })
         .filter(Boolean);
@@ -303,7 +300,38 @@ export function CreateRegistrodeHoras() {
     }
   };
 
-  const formattedEndDate = format(addDays(parseISO(periodStart), CANTIDAD_DIAS - 1), 'dd/MM/yyyy');
+  const handlePeriodStartChange = (newStartDate) => {
+    setPeriodStart(newStartDate);
+    const maxEndForStart = getMaxPeriodEndIso(newStartDate);
+
+    if (newStartDate > periodEnd) {
+      setPeriodEnd(newStartDate);
+      return;
+    }
+
+    if (periodEnd > maxEndForStart) {
+      setPeriodEnd(maxEndForStart);
+    }
+  };
+
+  const handlePeriodEndChange = (newEndDate) => {
+    const maxEndForStart = getMaxPeriodEndIso(periodStart);
+
+    if (newEndDate < periodStart) {
+      setPeriodEnd(periodStart);
+      return;
+    }
+
+    if (newEndDate > maxEndForStart) {
+      setPeriodEnd(maxEndForStart);
+      toast.error('El periodo máximo permitido es de 14 días.');
+      return;
+    }
+
+    setPeriodEnd(newEndDate);
+  };
+
+  const formattedEndDate = format(parseISO(periodEnd), 'dd/MM/yyyy');
   const formattedStartDate = format(parseISO(periodStart), 'dd/MM/yyyy');
 
   const handleLogout = () => {
@@ -325,13 +353,35 @@ export function CreateRegistrodeHoras() {
         }}
       >
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Hoja de tiempo
-            </Typography>
-            <Typography variant="body1">Alejandro Quesada</Typography>
-            <Typography variant="body2">ID: {idUsuario || 'sin definir'}</Typography>
-          </Box>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: 1.5,
+                bgcolor: 'rgba(255, 255, 255, 0.25)',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '1rem',
+              }}
+            >
+              {userInitials}
+            </Box>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                Hoja de tiempo
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                Alejandro Quesada
+              </Typography>
+              <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                ID: {idUsuario || 'sin definir'}
+              </Typography>
+            </Box>
+          </Stack>
           <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={handleLogout}>
             Cerrar sesión
           </Button>
@@ -339,14 +389,28 @@ export function CreateRegistrodeHoras() {
       </Paper>
 
       <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, borderRadius: 0 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', md: 'center' }}
+          sx={{ pl: { xs: 0.5, md: 1.5 } }}
+        >
           <TextField
             label="Inicio periodo"
             type="date"
             value={periodStart}
-            onChange={(event) => setPeriodStart(event.target.value)}
+            onChange={(event) => handlePeriodStartChange(event.target.value)}
             size="small"
             InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Fin periodo"
+            type="date"
+            value={periodEnd}
+            onChange={(event) => handlePeriodEndChange(event.target.value)}
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            inputProps={{ min: periodStart, max: getMaxPeriodEndIso(periodStart) }}
           />
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Periodo: {formattedStartDate} a {formattedEndDate}
@@ -372,7 +436,16 @@ export function CreateRegistrodeHoras() {
 
         <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <Table size="small">
-            <TableHead sx={{ bgcolor: '#eef3f8' }}>
+            <TableHead
+              sx={{
+                '& .MuiTableCell-root': {
+                  bgcolor: '#dfe7ef',
+                  color: '#243447',
+                  fontWeight: 800,
+                  borderBottom: '2px solid #c5d2df',
+                },
+              }}
+            >
               <TableRow>
                 <TableCell padding="checkbox" />
                 <TableCell>Cliente</TableCell>
@@ -385,7 +458,7 @@ export function CreateRegistrodeHoras() {
                     {day.dayLabel}
                   </TableCell>
                 ))}
-                <TableCell align="right">Total</TableCell>
+                <TableCell align="right">Total (hrs)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -393,12 +466,22 @@ export function CreateRegistrodeHoras() {
                 const selectedProject = projectMap[row.id_proyecto];
                 const subTasks = getSubTasksByProject(row.id_proyecto);
                 const rowTotal = sumHours(row.horasPorDia);
+                const isRowSelected = selectedRowIds.includes(row.id);
 
                 return (
-                  <TableRow key={row.id} hover>
+                  <TableRow
+                    key={row.id}
+                    hover
+                    sx={{
+                      backgroundColor: isRowSelected ? '#f7f8fa' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: isRowSelected ? '#f2f4f7' : '#fafbfc',
+                      },
+                    }}
+                  >
                     <TableCell padding="checkbox">
                       <Checkbox
-                        checked={selectedRowIds.includes(row.id)}
+                        checked={isRowSelected}
                         onChange={(event) => handleToggleRow(row.id, event.target.checked)}
                       />
                     </TableCell>
@@ -443,22 +526,12 @@ export function CreateRegistrodeHoras() {
                         value={row.comentarios}
                         onChange={(event) => handleCommentChange(row.id, event.target.value)}
                         size="small"
+                        placeholder="Notas adicionales..."
                         fullWidth
                       />
                     </TableCell>
                     <TableCell sx={{ minWidth: 150 }}>
-                      <Select
-                        value={row.estado_aprobacion}
-                        onChange={(event) => handleStatusChange(row.id, event.target.value)}
-                        size="small"
-                        fullWidth
-                      >
-                        {ESTADOS.map((estado) => (
-                          <MenuItem key={estado} value={estado}>
-                            <Chip label={estado} color={getEstadoChipColor(estado)} sx={getEstadoChipSx(estado)} size="small" />
-                          </MenuItem>
-                        ))}
-                      </Select>
+                      <Chip label="Pendiente" sx={pendienteChipSx} size="small" />
                     </TableCell>
                     {weekDays.map((day) => (
                       <TableCell key={day.iso} align="center">
@@ -466,9 +539,12 @@ export function CreateRegistrodeHoras() {
                           type="number"
                           size="small"
                           value={row.horasPorDia[day.iso]}
-                          inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.25 }}
+                          InputProps={{
+                            endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
+                          }}
+                          inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.5 }}
                           onChange={(event) => handleHourChange(row.id, day.iso, event.target.value)}
-                          sx={{ width: 78 }}
+                          sx={{ width: 108 }}
                         />
                       </TableCell>
                     ))}
@@ -482,9 +558,37 @@ export function CreateRegistrodeHoras() {
           </Table>
         </TableContainer>
 
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
-          <Typography variant="h6">Total: {totalHoras.toFixed(2)} h</Typography>
-          <Button variant="contained" color="primary" onClick={handleSave} disabled={isSaving}>
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Box
+            sx={{
+              minWidth: { xs: 220, md: 280 },
+              px: 2,
+              py: 1.25,
+              borderRadius: 1,
+              backgroundColor: '#f5f7f9',
+              border: '1px solid #d6dee6',
+              textAlign: 'right',
+            }}
+          >
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+              Total de Horas del Periodo
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.1, color: '#111111', fontSize: { xs: '1.2rem', md: '1.28rem' } }}>
+              {totalHoras.toFixed(2)} hrs
+            </Typography>
+          </Box>
+        </Box>
+
+        <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mt: 1.5 }}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={isSaving}
+            sx={{
+              bgcolor: '#1f4d2e',
+              '&:hover': { bgcolor: '#173a23' },
+            }}
+          >
             Enviar a revisión
           </Button>
         </Stack>
