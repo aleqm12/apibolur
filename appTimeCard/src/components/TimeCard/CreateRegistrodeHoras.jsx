@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -24,7 +24,7 @@ import DialogActions from '@mui/material/DialogActions';
 import toast from 'react-hot-toast';
 import { addDays, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProjectService from '../../services/ProjectService';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
@@ -66,6 +66,19 @@ const buildEmptyRow = (weekDays) => ({
   horasPorDia: buildHoursByWeek(weekDays),
 });
 
+const buildRowFromRegistro = (weekDays, registro, projectIdFromSubTaskMap) => ({
+  id: `db-${registro.id_registro || Math.random().toString(36).slice(2, 8)}`,
+  id_proyecto: registro.id_proyecto || projectIdFromSubTaskMap[registro.id_subtarea] || '',
+  id_subtarea: registro.id_subtarea || '',
+  comentarios: registro.comentarios || '',
+  estado_aprobacion: registro.estado_aprobacion || 'Pendiente',
+  horasPorDia: buildHoursByWeek(weekDays, {
+    [registro.fecha]: Number(registro.horas),
+  }),
+});
+
+const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+
 const normalizeHourValue = (value) => {
   if (value === '' || value === null || typeof value === 'undefined') {
     return '';
@@ -99,6 +112,11 @@ const pendienteChipSx = {
 
 export function CreateRegistrodeHoras() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const modo = searchParams.get('modo');
+  const periodStartQuery = searchParams.get('inicio');
+  const periodEndQuery = searchParams.get('fin');
+  const isEditMode = modo === 'editar' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
   const storedAuthUser = localStorage.getItem('authUser');
   let currentUser = null;
 
@@ -116,8 +134,8 @@ export function CreateRegistrodeHoras() {
     .slice(0, 2)
     .map((segment) => segment[0].toUpperCase())
     .join('') || 'US';
-  const [periodStart, setPeriodStart] = useState(() => getTodayIso());
-  const [periodEnd, setPeriodEnd] = useState(() => getDefaultPeriodEndIso(getTodayIso()));
+  const [periodStart, setPeriodStart] = useState(() => (isEditMode ? periodStartQuery : getTodayIso()));
+  const [periodEnd, setPeriodEnd] = useState(() => (isEditMode ? periodEndQuery : getDefaultPeriodEndIso(getTodayIso())));
   const [projects, setProjects] = useState([]);
   const [filterCliente, setFilterCliente] = useState('');
   const [filterBusqueda, setFilterBusqueda] = useState('');
@@ -171,6 +189,67 @@ export function CreateRegistrodeHoras() {
       return accumulator;
     }, {});
   }, [projects]);
+
+  const projectIdFromSubTaskMap = useMemo(() => {
+    const map = {};
+
+    projects.forEach((project) => {
+      if (!Array.isArray(project.sub_tareas)) {
+        return;
+      }
+
+      project.sub_tareas.forEach((subTask) => {
+        map[subTask.id_subtarea] = project.id_proyecto;
+      });
+    });
+
+    return map;
+  }, [projects]);
+
+  const loadRowsByUserAndPeriod = useCallback(async () => {
+    try {
+      const response = await RegistroHorasService.getByUser(idUsuario);
+      const registros = Array.isArray(response?.data) ? response.data : [];
+
+      const filteredRegistros = registros.filter((registro) => {
+        return registro.fecha >= periodStart && registro.fecha <= periodEnd;
+      });
+
+      if (filteredRegistros.length === 0) {
+        setRows([buildEmptyRow(weekDays)]);
+        return;
+      }
+
+      const groupedRows = filteredRegistros.reduce((accumulator, registro) => {
+        const groupKey = [
+          registro.id_proyecto || projectIdFromSubTaskMap[registro.id_subtarea] || '',
+          registro.id_subtarea || '',
+          (registro.comentarios || '').trim(),
+        ].join('|');
+
+        if (!accumulator[groupKey]) {
+          accumulator[groupKey] = buildRowFromRegistro(weekDays, registro, projectIdFromSubTaskMap);
+        } else {
+          accumulator[groupKey].horasPorDia[registro.fecha] = Number(registro.horas);
+        }
+
+        return accumulator;
+      }, {});
+
+      const hydratedRows = Object.values(groupedRows);
+      setRows(hydratedRows.length > 0 ? hydratedRows : [buildEmptyRow(weekDays)]);
+    } catch {
+      toast.error('No fue posible cargar la hoja seleccionada para editar.');
+    }
+  }, [idUsuario, periodStart, periodEnd, weekDays, projectIdFromSubTaskMap]);
+
+  useEffect(() => {
+    if (projects.length === 0 || !isEditMode) {
+      return;
+    }
+
+    loadRowsByUserAndPeriod();
+  }, [projects, isEditMode, loadRowsByUserAndPeriod]);
 
   const handleAddRow = () => {
     setRows((currentRows) => [...currentRows, buildEmptyRow(weekDays)]);
@@ -531,7 +610,7 @@ export function CreateRegistrodeHoras() {
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                Hoja de tiempo
+                {isEditMode ? 'Editar hoja de tiempo' : 'Nueva hoja de tiempo'}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
                 {userFullName || 'Usuario'}
@@ -567,6 +646,7 @@ export function CreateRegistrodeHoras() {
             size="small"
             InputLabelProps={{ shrink: true }}
             inputProps={{ lang: 'es-CR' }}
+            disabled={isEditMode}
           />
           <TextField
             label="Fecha final del periodo"
@@ -576,6 +656,7 @@ export function CreateRegistrodeHoras() {
             size="small"
             InputLabelProps={{ shrink: true }}
             inputProps={{ min: periodStart, max: getMaxPeriodEndIso(periodStart), lang: 'es-CR' }}
+            disabled={isEditMode}
           />
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Fecha inicio: {formattedStartDate} | Fecha final: {formattedEndDate}

@@ -14,6 +14,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
+import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
@@ -36,6 +38,7 @@ export function HistorialHojasTiempo() {
   const [filterEstado, setFilterEstado] = useState('Todos');
   const [filterDesde, setFilterDesde] = useState('');
   const [filterHasta, setFilterHasta] = useState('');
+  const [selectedSheetKey, setSelectedSheetKey] = useState('');
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -84,16 +87,75 @@ export function HistorialHojasTiempo() {
     loadHistory();
   }, [currentUser]);
 
-  const rows = useMemo(() => {
-    return allRows.filter((row) => {
+  const sheets = useMemo(() => {
+    const filteredRows = allRows.filter((row) => {
       const estadoOk = filterEstado === 'Todos' || row.estado_aprobacion === filterEstado;
       const desdeOk = filterDesde === '' || row.fecha >= filterDesde;
       const hastaOk = filterHasta === '' || row.fecha <= filterHasta;
       return estadoOk && desdeOk && hastaOk;
     });
+
+    const grouped = filteredRows.reduce((accumulator, row) => {
+      const currentDate = parseISO(row.fecha);
+      const periodStart = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const periodEnd = format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const key = `${periodStart}|${periodEnd}`;
+
+      if (!accumulator[key]) {
+        accumulator[key] = {
+          key,
+          periodStart,
+          periodEnd,
+          totalRegistros: 0,
+          totalHoras: 0,
+          estados: new Set(),
+        };
+      }
+
+      accumulator[key].totalRegistros += 1;
+      accumulator[key].totalHoras += Number(row.horas || 0);
+      accumulator[key].estados.add(row.estado_aprobacion || 'Pendiente');
+
+      return accumulator;
+    }, {});
+
+    return Object.values(grouped)
+      .map((sheet) => {
+        const estados = [...sheet.estados];
+        let estadoHoja = 'Pendiente';
+
+        if (estados.includes('Pendiente')) {
+          estadoHoja = 'Pendiente';
+        } else if (estados.includes('Rechazado')) {
+          estadoHoja = 'Rechazado';
+        } else if (estados.includes('Aprobado')) {
+          estadoHoja = 'Aprobado';
+        }
+
+        return {
+          ...sheet,
+          estadoHoja,
+        };
+      })
+      .sort((a, b) => (a.periodStart < b.periodStart ? 1 : -1));
   }, [allRows, filterEstado, filterDesde, filterHasta]);
 
-  const totalHoras = useMemo(() => rows.reduce((acc, item) => acc + Number(item.horas || 0), 0), [rows]);
+  const totalHoras = useMemo(() => sheets.reduce((acc, item) => acc + Number(item.totalHoras || 0), 0), [sheets]);
+
+  const handleOpenSelectedSheet = () => {
+    if (!selectedSheetKey) {
+      toast.error('Seleccione una hoja para editar.');
+      return;
+    }
+
+    const selectedSheet = sheets.find((item) => item.key === selectedSheetKey);
+    if (!selectedSheet) {
+      toast.error('La hoja seleccionada ya no esta disponible.');
+      return;
+    }
+
+    navigate(`/registro-horas/crear?modo=editar&inicio=${selectedSheet.periodStart}&fin=${selectedSheet.periodEnd}`);
+  };
 
   if (!currentUser) {
     return null;
@@ -105,11 +167,11 @@ export function HistorialHojasTiempo() {
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }}>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>Historial de Hojas de Tiempo</Typography>
-            <Typography variant="body2">Filtre por estado y rango de fechas para revisar decisiones.</Typography>
+            <Typography variant="body2">Seleccione una hoja para editarla por periodo.</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/registro-horas/activa')}>
-              Hoja activa
+            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/registro-horas/crear')}>
+              Crear nueva hoja
             </Button>
             <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/')}>
               Volver al inicio
@@ -133,22 +195,26 @@ export function HistorialHojasTiempo() {
               setFilterEstado('Todos');
               setFilterDesde('');
               setFilterHasta('');
+              setSelectedSheetKey('');
             }}>
               Limpiar
             </Button>
+            <Button variant="contained" onClick={handleOpenSelectedSheet}>
+              Editar hoja seleccionada
+            </Button>
           </Stack>
-          <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>Total registros: {rows.length} | Horas acumuladas: {totalHoras.toFixed(2)}</Typography>
+          <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>Total hojas: {sheets.length} | Horas acumuladas: {totalHoras.toFixed(2)}</Typography>
         </Paper>
 
         <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <Table size="small">
             <TableHead sx={{ '& .MuiTableCell-root': { fontWeight: 700, bgcolor: '#eef3f8' } }}>
               <TableRow>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Proyecto / Tarea</TableCell>
+                <TableCell padding="checkbox" />
+                <TableCell>Periodo</TableCell>
+                <TableCell align="right">Registros</TableCell>
                 <TableCell align="right">Horas</TableCell>
                 <TableCell align="center">Estado</TableCell>
-                <TableCell>Comentarios</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -156,20 +222,22 @@ export function HistorialHojasTiempo() {
                 <TableRow>
                   <TableCell colSpan={5} align="center">Cargando historial...</TableCell>
                 </TableRow>
-              ) : rows.length === 0 ? (
+              ) : sheets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">No hay datos con los filtros actuales.</TableCell>
+                  <TableCell colSpan={5} align="center">No hay hojas con los filtros actuales.</TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
-                  <TableRow key={row.id_registro} hover>
-                    <TableCell>{row.fecha}</TableCell>
-                    <TableCell>[{row.id_proyecto}] {row.nombre_proyecto || row.id_proyecto} / {row.nombre_tarea || row.id_subtarea}</TableCell>
-                    <TableCell align="right">{Number(row.horas || 0).toFixed(2)}</TableCell>
-                    <TableCell align="center">
-                      <Chip size="small" color={getChipColor(row.estado_aprobacion)} label={(row.estado_aprobacion || 'Pendiente').toUpperCase()} />
+                sheets.map((sheet) => (
+                  <TableRow key={sheet.key} hover>
+                    <TableCell padding="checkbox">
+                      <Checkbox checked={selectedSheetKey === sheet.key} onChange={() => setSelectedSheetKey(sheet.key)} />
                     </TableCell>
-                    <TableCell>{row.comentarios || '-'}</TableCell>
+                    <TableCell>{sheet.periodStart} a {sheet.periodEnd}</TableCell>
+                    <TableCell align="right">{sheet.totalRegistros}</TableCell>
+                    <TableCell align="right">{Number(sheet.totalHoras || 0).toFixed(2)}</TableCell>
+                    <TableCell align="center">
+                      <Chip size="small" color={getChipColor(sheet.estadoHoja)} label={(sheet.estadoHoja || 'Pendiente').toUpperCase()} />
+                    </TableCell>
                   </TableRow>
                 ))
               )}

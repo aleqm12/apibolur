@@ -103,9 +103,6 @@ export function Home() {
         <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ minWidth: 320 }}>
           Crear una nueva hoja de tiempo
         </Button>
-        <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/activa" sx={{ minWidth: 320 }}>
-          Hoja de Tiempo Activa
-        </Button>
         <Button variant="outlined" color="secondary" size="large" component={Link} to="/registro-horas/historial" sx={{ minWidth: 320 }}>
           Historial de Hojas de Tiempo
         </Button>
