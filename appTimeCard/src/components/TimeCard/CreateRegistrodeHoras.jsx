@@ -104,6 +104,24 @@ const sumHours = (hoursByDay) => {
   }, 0);
 };
 
+const resolveEstadoFromSet = (estadoSet) => {
+  const estados = [...estadoSet];
+
+  if (estados.includes('Rechazado')) {
+    return 'Rechazado';
+  }
+
+  if (estados.includes('Pendiente')) {
+    return 'Pendiente';
+  }
+
+  if (estados.includes('Aprobado')) {
+    return 'Aprobado';
+  }
+
+  return 'Pendiente';
+};
+
 const pendienteChipSx = {
   bgcolor: '#ffeb3b',
   color: '#4e342e',
@@ -250,15 +268,31 @@ export function CreateRegistrodeHoras() {
         ].join('|');
 
         if (!accumulator[groupKey]) {
-          accumulator[groupKey] = buildRowFromRegistro(weekDays, registro, projectIdFromSubTaskMap);
+          accumulator[groupKey] = {
+            ...buildRowFromRegistro(weekDays, registro, projectIdFromSubTaskMap),
+            estadoSet: new Set([registro.estado_aprobacion || 'Pendiente']),
+            rechazoFeedback: registro.motivo_rechazo_admin ? [registro.motivo_rechazo_admin] : [],
+          };
         } else {
           accumulator[groupKey].horasPorDia[registro.fecha] = Number(registro.horas);
+          accumulator[groupKey].estadoSet.add(registro.estado_aprobacion || 'Pendiente');
+          if (registro.motivo_rechazo_admin) {
+            accumulator[groupKey].rechazoFeedback.push(registro.motivo_rechazo_admin);
+          }
         }
 
         return accumulator;
       }, {});
 
-      const hydratedRows = Object.values(groupedRows);
+      const hydratedRows = Object.values(groupedRows).map((row) => {
+        const uniqueFeedback = [...new Set(row.rechazoFeedback || [])].filter(Boolean);
+
+        return {
+          ...row,
+          estado_aprobacion_display: resolveEstadoFromSet(row.estadoSet || new Set()),
+          rechazoFeedbackText: uniqueFeedback.join(' | '),
+        };
+      });
       setRows(hydratedRows.length > 0 ? hydratedRows : [buildEmptyRow(weekDays)]);
       setEstadoEnvio('enviado');
     } catch {
@@ -954,7 +988,19 @@ export function CreateRegistrodeHoras() {
                       />
                     </TableCell>
                     <TableCell sx={{ minWidth: 150 }}>
-                      <Chip label="Pendiente" sx={pendienteChipSx} size="small" />
+                      <Stack spacing={0.5}>
+                        <Chip
+                          label={(row.estado_aprobacion_display || 'Pendiente').toUpperCase()}
+                          color={row.estado_aprobacion_display === 'Pendiente' ? 'default' : row.estado_aprobacion_display === 'Aprobado' ? 'success' : 'error'}
+                          sx={row.estado_aprobacion_display === 'Pendiente' ? pendienteChipSx : undefined}
+                          size="small"
+                        />
+                        {row.estado_aprobacion_display === 'Rechazado' && row.rechazoFeedbackText ? (
+                          <Typography variant="caption" sx={{ color: '#b42318', maxWidth: 220 }}>
+                            {row.rechazoFeedbackText}
+                          </Typography>
+                        ) : null}
+                      </Stack>
                     </TableCell>
                     {weekDays.map((day) => (
                       <TableCell key={day.iso} align="center">

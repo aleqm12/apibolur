@@ -144,16 +144,17 @@ export function ActiveTimeSheet() {
                 <TableCell align="right">Horas</TableCell>
                 <TableCell align="center">Estado</TableCell>
                 <TableCell>Comentario</TableCell>
+                <TableCell>Retroalimentacion Admin</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">Cargando hoja activa...</TableCell>
+                  <TableCell colSpan={6} align="center">Cargando hoja activa...</TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">No hay registros en la semana activa.</TableCell>
+                  <TableCell colSpan={6} align="center">No hay registros en la semana activa.</TableCell>
                 </TableRow>
               ) : (
                 rows.map((row) => (
@@ -170,6 +171,11 @@ export function ActiveTimeSheet() {
                       />
                     </TableCell>
                     <TableCell>{row.comentarios || '-'}</TableCell>
+                    <TableCell>
+                      {row.estado_aprobacion === 'Rechazado'
+                        ? row.motivo_rechazo_admin || 'Sin comentario del administrador.'
+                        : '-'}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

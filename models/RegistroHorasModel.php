@@ -13,12 +13,19 @@ class RegistroHorasModel
     {
         try {
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
-                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente " .
+                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
+                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
                 "LEFT JOIN clientes c ON c.id_cliente = p.id_cliente " .
                 "LEFT JOIN usuarios u ON u.id_usuario = rh.id_usuario " .
+                "LEFT JOIN (" .
+                "SELECT a1.id_registro, a1.motivo_rechazo, a1.fecha_decision " .
+                "FROM aprobaciones a1 " .
+                "INNER JOIN (SELECT id_registro, MAX(id_aprobacion) AS max_id_aprobacion FROM aprobaciones GROUP BY id_registro) latest " .
+                "ON latest.max_id_aprobacion = a1.id_aprobacion" .
+                ") ap ON ap.id_registro = rh.id_registro " .
                 "ORDER BY rh.fecha DESC, rh.id_registro DESC;";
 
             return $this->enlace->executeSQL($vSql);
@@ -32,12 +39,19 @@ class RegistroHorasModel
         try {
             $idRegistro = (int) $idRegistro;
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
-                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente " .
+                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
+                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
                 "LEFT JOIN clientes c ON c.id_cliente = p.id_cliente " .
                 "LEFT JOIN usuarios u ON u.id_usuario = rh.id_usuario " .
+                "LEFT JOIN (" .
+                "SELECT a1.id_registro, a1.motivo_rechazo, a1.fecha_decision " .
+                "FROM aprobaciones a1 " .
+                "INNER JOIN (SELECT id_registro, MAX(id_aprobacion) AS max_id_aprobacion FROM aprobaciones GROUP BY id_registro) latest " .
+                "ON latest.max_id_aprobacion = a1.id_aprobacion" .
+                ") ap ON ap.id_registro = rh.id_registro " .
                 "WHERE rh.id_registro = $idRegistro;";
 
             $vResultado = $this->enlace->executeSQL($vSql);
@@ -57,11 +71,18 @@ class RegistroHorasModel
         try {
             $idUsuario = addslashes($idUsuario);
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
-                "st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente " .
+                "st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
+                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
                 "LEFT JOIN clientes c ON c.id_cliente = p.id_cliente " .
+                "LEFT JOIN (" .
+                "SELECT a1.id_registro, a1.motivo_rechazo, a1.fecha_decision " .
+                "FROM aprobaciones a1 " .
+                "INNER JOIN (SELECT id_registro, MAX(id_aprobacion) AS max_id_aprobacion FROM aprobaciones GROUP BY id_registro) latest " .
+                "ON latest.max_id_aprobacion = a1.id_aprobacion" .
+                ") ap ON ap.id_registro = rh.id_registro " .
                 "WHERE rh.id_usuario = '$idUsuario' " .
                 "ORDER BY rh.fecha ASC, rh.id_registro ASC;";
 

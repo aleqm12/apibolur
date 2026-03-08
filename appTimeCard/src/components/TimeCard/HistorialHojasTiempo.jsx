@@ -140,10 +140,10 @@ export function HistorialHojasTiempo() {
         const estados = [...sheet.estados];
         let estadoHoja = 'Pendiente';
 
-        if (estados.includes('Pendiente')) {
-          estadoHoja = 'Pendiente';
-        } else if (estados.includes('Rechazado')) {
+        if (estados.includes('Rechazado')) {
           estadoHoja = 'Rechazado';
+        } else if (estados.includes('Pendiente')) {
+          estadoHoja = 'Pendiente';
         } else if (estados.includes('Aprobado')) {
           estadoHoja = 'Aprobado';
         }

@@ -157,7 +157,48 @@ export function CreateAprobaciones() {
     return rows.filter((row) => selectedIds.includes(row.id_registro));
   }, [rows, selectedIds]);
 
-  const isAllSelected = rows.length > 0 && selectedIds.length === rows.length;
+  const displayRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const projectA = (a.id_proyecto || '').toString();
+      const projectB = (b.id_proyecto || '').toString();
+
+      if (projectA !== projectB) {
+        return projectA.localeCompare(projectB);
+      }
+
+      const userA = (a.id_usuario || '').toString();
+      const userB = (b.id_usuario || '').toString();
+      if (userA !== userB) {
+        return userA.localeCompare(userB);
+      }
+
+      const dateA = (a.fecha || '').toString();
+      const dateB = (b.fecha || '').toString();
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      return Number(a.id_registro || 0) - Number(b.id_registro || 0);
+    });
+  }, [rows]);
+
+  const projectColorMap = useMemo(() => {
+    const palette = ['#7A1E3A', '#1f4b74', '#1f4d2e', '#7a3e00', '#5b2b7a', '#0f766e'];
+    const map = {};
+    let index = 0;
+
+    displayRows.forEach((row) => {
+      const key = row.id_proyecto || 'SIN-PROYECTO';
+      if (!map[key]) {
+        map[key] = palette[index % palette.length];
+        index += 1;
+      }
+    });
+
+    return map;
+  }, [displayRows]);
+
+  const isAllSelected = displayRows.length > 0 && selectedIds.length === displayRows.length;
 
   const getChipColor = (estado) => {
     if (estado === 'Aprobado') {
@@ -178,7 +219,7 @@ export function CreateAprobaciones() {
 
   const toggleSelectAll = (checked) => {
     if (checked) {
-      setSelectedIds(rows.map((row) => row.id_registro));
+      setSelectedIds(displayRows.map((row) => row.id_registro));
       return;
     }
     setSelectedIds([]);
@@ -400,17 +441,24 @@ export function CreateAprobaciones() {
                     Cargando registros...
                   </TableCell>
                 </TableRow>
-              ) : rows.length === 0 ? (
+              ) : displayRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     No hay registros para mostrar con los filtros actuales.
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => {
+                displayRows.map((row) => {
                   const isSelected = selectedIds.includes(row.id_registro);
+                  const rowProjectColor = projectColorMap[row.id_proyecto || 'SIN-PROYECTO'] || '#7A1E3A';
                   return (
-                    <TableRow key={row.id_registro} hover>
+                    <TableRow
+                      key={row.id_registro}
+                      hover
+                      sx={{
+                        borderLeft: `4px solid ${rowProjectColor}`,
+                      }}
+                    >
                       <TableCell padding="checkbox">
                         <Checkbox checked={isSelected} onChange={(event) => toggleSelectRow(row.id_registro, event.target.checked)} />
                       </TableCell>
