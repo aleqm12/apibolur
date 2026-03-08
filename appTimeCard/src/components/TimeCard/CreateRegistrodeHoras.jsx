@@ -30,6 +30,7 @@ import RegistroHorasService from '../../services/RegistroHorasService';
 
 const HORAS_MAXIMAS_DIA = 10;
 const MAX_DIAS_PERIODO = 14;
+const DRAFT_STORAGE_PREFIX = 'timeSheetDraft';
 
 const getTodayIso = () => format(new Date(), 'yyyy-MM-dd');
 const getDefaultPeriodEndIso = (periodStart) => format(addDays(parseISO(periodStart), 6), 'yyyy-MM-dd');
@@ -110,6 +111,13 @@ const pendienteChipSx = {
   border: '1px solid rgba(78, 52, 46, 0.25)',
 };
 
+const enviadoChipSx = {
+  bgcolor: '#2e7d32',
+  color: '#ffffff',
+  fontWeight: 700,
+  border: '1px solid rgba(255, 255, 255, 0.2)',
+};
+
 export function CreateRegistrodeHoras() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -117,6 +125,8 @@ export function CreateRegistrodeHoras() {
   const periodStartQuery = searchParams.get('inicio');
   const periodEndQuery = searchParams.get('fin');
   const isEditMode = modo === 'editar' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
+  const isDraftMode = modo === 'draft' && isIsoDate(periodStartQuery) && isIsoDate(periodEndQuery);
+  const isFixedPeriodMode = isEditMode || isDraftMode;
   const storedAuthUser = localStorage.getItem('authUser');
   let currentUser = null;
 
@@ -152,9 +162,20 @@ export function CreateRegistrodeHoras() {
     message: '',
   });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [estadoEnvio, setEstadoEnvio] = useState('pendiente');
   const [rows, setRows] = useState(() => [buildEmptyRow(buildWeekDays(getTodayIso(), getDefaultPeriodEndIso(getTodayIso())))]);
 
   const weekDays = useMemo(() => buildWeekDays(periodStart, periodEnd), [periodStart, periodEnd]);
+  const draftStorageKey = useMemo(() => {
+    if (!idUsuario) {
+      return '';
+    }
+    return `${DRAFT_STORAGE_PREFIX}:${idUsuario}:${periodStart}:${periodEnd}`;
+  }, [idUsuario, periodStart, periodEnd]);
+
+  const markAsPendingIfSent = useCallback(() => {
+    setEstadoEnvio((current) => (current === 'enviado' ? 'pendiente' : current));
+  }, []);
 
   useEffect(() => {
     setRows((currentRows) =>
@@ -217,6 +238,7 @@ export function CreateRegistrodeHoras() {
 
       if (filteredRegistros.length === 0) {
         setRows([buildEmptyRow(weekDays)]);
+        setEstadoEnvio('pendiente');
         return;
       }
 
@@ -238,20 +260,63 @@ export function CreateRegistrodeHoras() {
 
       const hydratedRows = Object.values(groupedRows);
       setRows(hydratedRows.length > 0 ? hydratedRows : [buildEmptyRow(weekDays)]);
+      setEstadoEnvio('enviado');
     } catch {
       toast.error('No fue posible cargar la hoja seleccionada para editar.');
     }
   }, [idUsuario, periodStart, periodEnd, weekDays, projectIdFromSubTaskMap]);
 
+  const loadDraftByPeriod = useCallback(() => {
+    if (!draftStorageKey) {
+      return false;
+    }
+
+    const draftRaw = localStorage.getItem(draftStorageKey);
+    if (!draftRaw) {
+      return false;
+    }
+
+    try {
+      const draft = JSON.parse(draftRaw);
+      const draftRows = Array.isArray(draft?.rows) ? draft.rows : [];
+
+      if (draftRows.length === 0) {
+        return false;
+      }
+
+      const normalizedRows = draftRows.map((row) => ({
+        ...row,
+        id: row.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        horasPorDia: buildHoursByWeek(weekDays, row.horasPorDia || {}),
+      }));
+
+      setRows(normalizedRows);
+      setEstadoEnvio('pendiente');
+      return true;
+    } catch {
+      return false;
+    }
+  }, [draftStorageKey, weekDays]);
+
   useEffect(() => {
-    if (projects.length === 0 || !isEditMode) {
+    if (projects.length === 0) {
       return;
     }
 
-    loadRowsByUserAndPeriod();
-  }, [projects, isEditMode, loadRowsByUserAndPeriod]);
+    if (isEditMode) {
+      loadRowsByUserAndPeriod();
+      return;
+    }
+
+    const hasDraft = loadDraftByPeriod();
+    if (!hasDraft) {
+      setRows([buildEmptyRow(weekDays)]);
+      setEstadoEnvio('pendiente');
+    }
+  }, [projects, isEditMode, loadRowsByUserAndPeriod, loadDraftByPeriod, weekDays]);
 
   const handleAddRow = () => {
+    markAsPendingIfSent();
     setRows((currentRows) => [...currentRows, buildEmptyRow(weekDays)]);
   };
 
@@ -265,6 +330,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleDeleteRows = () => {
+    markAsPendingIfSent();
     setRows((currentRows) => {
       const nextRows = currentRows.filter((row) => !selectedRowIds.includes(row.id));
       if (nextRows.length > 0) {
@@ -280,6 +346,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleProjectChange = (rowId, idProyecto) => {
+    markAsPendingIfSent();
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       id_proyecto: idProyecto,
@@ -288,6 +355,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleSubTaskChange = (rowId, idSubTarea) => {
+    markAsPendingIfSent();
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       id_subtarea: idSubTarea,
@@ -295,6 +363,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleCommentChange = (rowId, comentarios) => {
+    markAsPendingIfSent();
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       comentarios,
@@ -302,6 +371,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handleHourChange = (rowId, dayIso, value) => {
+    markAsPendingIfSent();
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       horasPorDia: {
@@ -457,7 +527,47 @@ export function CreateRegistrodeHoras() {
     };
   };
 
-  const handleSave = async () => {
+  const handleSaveDraft = () => {
+    if (!draftStorageKey) {
+      toast.error('No fue posible guardar el borrador.');
+      return;
+    }
+
+    const rowsWithData = rows.filter((row) => {
+      const hasProject = Boolean((row.id_proyecto || '').trim());
+      const hasSubTask = Boolean((row.id_subtarea || '').trim());
+      const hasComments = Boolean((row.comentarios || '').trim());
+      const hasHours = Object.values(row.horasPorDia || {}).some((value) => Number(value) > 0);
+      return hasProject || hasSubTask || hasComments || hasHours;
+    });
+
+    if (rowsWithData.length === 0) {
+      setErrorDialog({
+        open: true,
+        title: 'No se puede guardar',
+        message: 'Agregue al menos un dato en la hoja antes de guardar el borrador.',
+      });
+      return;
+    }
+
+    const payload = {
+      id_usuario: idUsuario,
+      period_start: periodStart,
+      period_end: periodEnd,
+      rows,
+      updated_at: new Date().toISOString(),
+    };
+
+    localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+    setEstadoEnvio('pendiente');
+    setSuccessDialog({
+      open: true,
+      title: 'Borrador guardado',
+      message: 'La hoja se guardo como borrador. Aun no se ha enviado a revision.',
+    });
+  };
+
+  const handleSaveAndSend = async () => {
     const { registros, validationErrors } = parseRowsToPayload();
 
     if (validationErrors.length > 0) {
@@ -507,6 +617,10 @@ export function CreateRegistrodeHoras() {
             title: 'Enviado a revision',
             message: `Se guardaron ${totalInsertados} registros y quedaron enviados a revision con estado Pendiente.`,
           });
+          setEstadoEnvio('enviado');
+          if (draftStorageKey) {
+            localStorage.removeItem(draftStorageKey);
+          }
         }
       } else if (totalInsertados > 0 && totalErrores > 0) {
         setSuccessDialog({
@@ -514,6 +628,10 @@ export function CreateRegistrodeHoras() {
           title: 'Guardado completado con observaciones',
           message: `Se guardaron ${totalInsertados} registros y ${totalErrores} quedaron con error.`,
         });
+        setEstadoEnvio('enviado');
+        if (draftStorageKey) {
+          localStorage.removeItem(draftStorageKey);
+        }
       } else {
         toast.error('No se logró guardar ningún registro.');
       }
@@ -527,6 +645,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handlePeriodStartChange = (newStartDate) => {
+    markAsPendingIfSent();
     setPeriodStart(newStartDate);
     const maxEndForStart = getMaxPeriodEndIso(newStartDate);
 
@@ -541,6 +660,7 @@ export function CreateRegistrodeHoras() {
   };
 
   const handlePeriodEndChange = (newEndDate) => {
+    markAsPendingIfSent();
     const maxEndForStart = getMaxPeriodEndIso(periodStart);
 
     if (newEndDate < periodStart) {
@@ -630,7 +750,7 @@ export function CreateRegistrodeHoras() {
             </Box>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {isEditMode ? 'Editar hoja de tiempo' : 'Nueva hoja de tiempo'}
+                {isEditMode ? 'Editar hoja de tiempo' : isDraftMode ? 'Editar borrador de hoja' : 'Nueva hoja de tiempo'}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
                 {userFullName || 'Usuario'}
@@ -669,7 +789,7 @@ export function CreateRegistrodeHoras() {
             size="small"
             InputLabelProps={{ shrink: true }}
             inputProps={{ lang: 'es-CR' }}
-            disabled={isEditMode}
+            disabled={isFixedPeriodMode}
           />
           <TextField
             label="Fecha final del periodo"
@@ -679,12 +799,12 @@ export function CreateRegistrodeHoras() {
             size="small"
             InputLabelProps={{ shrink: true }}
             inputProps={{ min: periodStart, max: getMaxPeriodEndIso(periodStart), lang: 'es-CR' }}
-            disabled={isEditMode}
+            disabled={isFixedPeriodMode}
           />
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Fecha inicio: {formattedStartDate} | Fecha final: {formattedEndDate}
           </Typography>
-          <Chip label="Pendiente de envío" sx={pendienteChipSx} />
+          <Chip label={estadoEnvio === 'enviado' ? 'Enviado' : 'Pendiente de envio'} sx={estadoEnvio === 'enviado' ? enviadoChipSx : pendienteChipSx} />
         </Stack>
       </Paper>
 
@@ -732,8 +852,8 @@ export function CreateRegistrodeHoras() {
           <Button variant="outlined" color="error" onClick={handleDeleteRows} disabled={selectedRowIds.length === 0}>
             Borrar
           </Button>
-          <Button variant="contained" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Enviando...' : 'Guardar y enviar a revision'}
+          <Button variant="outlined" onClick={handleSaveDraft} disabled={isSaving}>
+            Guardar
           </Button>
         </Stack>
 
@@ -892,16 +1012,18 @@ export function CreateRegistrodeHoras() {
         <Stack direction="row" justifyContent="flex-end" alignItems="center" sx={{ mt: 1.5 }}>
           <Button
             variant="contained"
-            onClick={handleSave}
+            onClick={handleSaveAndSend}
             disabled={isSaving}
             sx={{
-              bgcolor: '#1f4d2e',
-              '&:hover': { bgcolor: '#173a23' },
+              bgcolor: '#7A1E3A',
+              color: '#ffffff',
+              '&:hover': { bgcolor: '#61172e' },
             }}
           >
-            Guardar y enviar a revision
+            {isSaving ? 'Enviando...' : 'Guardar y enviar a revision'}
           </Button>
         </Stack>
+
       </Box>
 
       <Dialog open={successDialog.open} onClose={closeSuccessDialog} maxWidth="xs" fullWidth>

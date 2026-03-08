@@ -20,6 +20,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
+const DRAFT_STORAGE_PREFIX = 'timeSheetDraft';
+
 const getChipColor = (estado) => {
   if (estado === 'Aprobado') {
     return 'success';
@@ -35,6 +37,13 @@ const pendienteChipSx = {
   color: '#4e342e',
   fontWeight: 700,
   border: '1px solid rgba(78, 52, 46, 0.25)',
+};
+
+const enviadoChipSx = {
+  bgcolor: '#2e7d32',
+  color: '#ffffff',
+  fontWeight: 700,
+  border: '1px solid rgba(255, 255, 255, 0.2)',
 };
 
 export function HistorialHojasTiempo() {
@@ -126,7 +135,7 @@ export function HistorialHojasTiempo() {
       return accumulator;
     }, {});
 
-    return Object.values(grouped)
+    const dbSheets = Object.values(grouped)
       .map((sheet) => {
         const estados = [...sheet.estados];
         let estadoHoja = 'Pendiente';
@@ -142,10 +151,89 @@ export function HistorialHojasTiempo() {
         return {
           ...sheet,
           estadoHoja,
+          estadoEnvio: 'Enviado',
+          source: 'db',
         };
       })
       .sort((a, b) => (a.periodStart < b.periodStart ? 1 : -1));
-  }, [allRows, filterEstado, filterDesde, filterHasta]);
+
+    const draftSheets = [];
+    const userId = currentUser?.id_usuario;
+
+    if (userId) {
+      const prefix = `${DRAFT_STORAGE_PREFIX}:${userId}:`;
+
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith(prefix)) {
+          continue;
+        }
+
+        const draftRaw = localStorage.getItem(key);
+        if (!draftRaw) {
+          continue;
+        }
+
+        try {
+          const draft = JSON.parse(draftRaw);
+          const periodStart = draft?.period_start || key.split(':')[2] || '';
+          const periodEnd = draft?.period_end || key.split(':')[3] || '';
+
+          if (!periodStart || !periodEnd) {
+            continue;
+          }
+
+          const rows = Array.isArray(draft?.rows) ? draft.rows : [];
+          let totalHorasDraft = 0;
+
+          rows.forEach((row) => {
+            const horasPorDia = row?.horasPorDia || {};
+            Object.values(horasPorDia).forEach((value) => {
+              const hours = Number(value);
+              if (Number.isFinite(hours) && hours > 0) {
+                totalHorasDraft += hours;
+              }
+            });
+          });
+
+          const totalRegistrosDraft = rows.length;
+          const desdeOk = filterDesde === '' || periodStart >= filterDesde;
+          const hastaOk = filterHasta === '' || periodEnd <= filterHasta;
+          const estadoOk = filterEstado === 'Todos' || filterEstado === 'Pendiente';
+
+          if (!desdeOk || !hastaOk || !estadoOk) {
+            continue;
+          }
+
+          draftSheets.push({
+            key: `${periodStart}|${periodEnd}`,
+            periodStart,
+            periodEnd,
+            totalRegistros: totalRegistrosDraft,
+            totalHoras: totalHorasDraft,
+            estadoHoja: 'Pendiente',
+            estadoEnvio: 'Pendiente de envio',
+            source: 'draft',
+          });
+        } catch {
+          // Ignora borradores mal formados.
+        }
+      }
+    }
+
+    const sheetMap = new Map();
+    dbSheets.forEach((sheet) => {
+      sheetMap.set(sheet.key, sheet);
+    });
+
+    draftSheets.forEach((sheet) => {
+      if (!sheetMap.has(sheet.key)) {
+        sheetMap.set(sheet.key, sheet);
+      }
+    });
+
+    return [...sheetMap.values()].sort((a, b) => (a.periodStart < b.periodStart ? 1 : -1));
+  }, [allRows, filterEstado, filterDesde, filterHasta, currentUser]);
 
   const totalHoras = useMemo(() => sheets.reduce((acc, item) => acc + Number(item.totalHoras || 0), 0), [sheets]);
 
@@ -161,7 +249,8 @@ export function HistorialHojasTiempo() {
       return;
     }
 
-    navigate(`/registro-horas/crear?modo=editar&inicio=${selectedSheet.periodStart}&fin=${selectedSheet.periodEnd}`);
+    const modoDestino = selectedSheet.source === 'draft' ? 'draft' : 'editar';
+    navigate(`/registro-horas/crear?modo=${modoDestino}&inicio=${selectedSheet.periodStart}&fin=${selectedSheet.periodEnd}`);
   };
 
   const headerActionButtonSx = {
@@ -231,17 +320,18 @@ export function HistorialHojasTiempo() {
                 <TableCell>Periodo</TableCell>
                 <TableCell align="right">Registros</TableCell>
                 <TableCell align="right">Horas</TableCell>
+                <TableCell align="center">Estado Envio</TableCell>
                 <TableCell align="center">Estado</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">Cargando historial...</TableCell>
+                  <TableCell colSpan={6} align="center">Cargando historial...</TableCell>
                 </TableRow>
               ) : sheets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">No hay hojas con los filtros actuales.</TableCell>
+                  <TableCell colSpan={6} align="center">No hay hojas con los filtros actuales.</TableCell>
                 </TableRow>
               ) : (
                 sheets.map((sheet) => (
@@ -252,6 +342,13 @@ export function HistorialHojasTiempo() {
                     <TableCell>{sheet.periodStart} a {sheet.periodEnd}</TableCell>
                     <TableCell align="right">{sheet.totalRegistros}</TableCell>
                     <TableCell align="right">{Number(sheet.totalHoras || 0).toFixed(2)}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        size="small"
+                        label={(sheet.estadoEnvio || 'Enviado').toUpperCase()}
+                        sx={sheet.estadoEnvio === 'Pendiente de envio' ? pendienteChipSx : enviadoChipSx}
+                      />
+                    </TableCell>
                     <TableCell align="center">
                       <Chip
                         size="small"
