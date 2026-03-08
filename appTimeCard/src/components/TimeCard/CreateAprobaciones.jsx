@@ -23,6 +23,7 @@ import Divider from '@mui/material/Divider';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import AprobacionesService from '../../services/AprobacionesService';
+import RegistroHorasService from '../../services/RegistroHorasService';
 
 export function CreateAprobaciones() {
   const navigate = useNavigate();
@@ -65,16 +66,50 @@ export function CreateAprobaciones() {
   const loadRows = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await AprobacionesService.getRegistros({
-        estado: filterEstado,
-        id_usuario: filterPersona,
-        id_proyecto: filterProyecto,
-      });
+      const params = {};
+      if (filterEstado && filterEstado !== 'Todos') {
+        params.estado = filterEstado;
+      }
+      if (filterPersona) {
+        params.id_usuario = filterPersona;
+      }
+      if (filterProyecto) {
+        params.id_proyecto = filterProyecto;
+      }
+
+      const response = await AprobacionesService.getRegistros(params);
       const registros = Array.isArray(response?.data) ? response.data : [];
       setRows(registros);
       setSelectedIds([]);
-    } catch {
-      toast.error('No fue posible cargar los registros para aprobación.');
+    } catch (primaryError) {
+      try {
+        // Fallback defensivo: usa listado general de registros y filtra en cliente.
+        const fallbackResponse = await RegistroHorasService.getAll();
+        const allRows = Array.isArray(fallbackResponse?.data) ? fallbackResponse.data : [];
+
+        const filtered = allRows.filter((row) => {
+          const estadoOk = !filterEstado || filterEstado === 'Todos' || row.estado_aprobacion === filterEstado;
+          const personaOk = !filterPersona || String(row.id_usuario) === String(filterPersona);
+          const proyectoOk = !filterProyecto || String(row.id_proyecto) === String(filterProyecto);
+          return estadoOk && personaOk && proyectoOk;
+        });
+
+        setRows(filtered);
+        setSelectedIds([]);
+      } catch (fallbackError) {
+        const backendMessage =
+          fallbackError?.response?.data?.result ||
+          fallbackError?.response?.data?.message ||
+          primaryError?.response?.data?.result ||
+          primaryError?.response?.data?.message ||
+          '';
+
+        toast.error(
+          backendMessage
+            ? `No fue posible cargar los registros para aprobacion: ${backendMessage}`
+            : 'No fue posible cargar los registros para aprobacion.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -351,6 +386,7 @@ export function CreateAprobaciones() {
                   <Checkbox checked={isAllSelected} onChange={(event) => toggleSelectAll(event.target.checked)} />
                 </TableCell>
                 <TableCell>COLABORADOR</TableCell>
+                <TableCell>FECHA</TableCell>
                 <TableCell>PROYECTO / TAREA</TableCell>
                 <TableCell align="center">HRS</TableCell>
                 <TableCell align="center">ESTADO</TableCell>
@@ -360,13 +396,13 @@ export function CreateAprobaciones() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     Cargando registros...
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     No hay registros para mostrar con los filtros actuales.
                   </TableCell>
                 </TableRow>
@@ -381,6 +417,7 @@ export function CreateAprobaciones() {
                       <TableCell>
                         [{row.id_usuario}] {(row.nombre || '').trim()} {(row.apellidos || '').trim()}
                       </TableCell>
+                      <TableCell>{row.fecha || '-'}</TableCell>
                       <TableCell>
                         [{row.id_proyecto}] {row.nombre_proyecto || row.id_proyecto} / {row.nombre_tarea || row.id_subtarea}
                       </TableCell>

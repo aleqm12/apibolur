@@ -187,7 +187,9 @@ export function HistorialAprobaciones() {
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">No hay datos para los filtros seleccionados.</TableCell>
+                  <TableCell colSpan={7} align="center">
+                    No hay decisiones registradas para los filtros seleccionados. Este historial se llena cuando un administrador aprueba o rechaza registros.
+                  </TableCell>
                 </TableRow>
               ) : (
                 rows.map((row) => (

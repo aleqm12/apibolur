@@ -469,6 +469,15 @@ export function CreateRegistrodeHoras() {
       return;
     }
 
+    if (registros.length === 0) {
+      setErrorDialog({
+        open: true,
+        title: 'No se puede enviar a revision',
+        message: 'Debe registrar al menos una hora antes de guardar o enviar a revision.',
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const response = await RegistroHorasService.createBatch({
@@ -495,8 +504,8 @@ export function CreateRegistrodeHoras() {
         } else {
           setSuccessDialog({
             open: true,
-            title: 'Guardado exitoso',
-            message: `Se guardaron ${totalInsertados} registros de horas correctamente.`,
+            title: 'Enviado a revision',
+            message: `Se guardaron ${totalInsertados} registros y quedaron enviados a revision con estado Pendiente.`,
           });
         }
       } else if (totalInsertados > 0 && totalErrores > 0) {
@@ -724,7 +733,7 @@ export function CreateRegistrodeHoras() {
             Borrar
           </Button>
           <Button variant="contained" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Guardando...' : 'Guardar'}
+            {isSaving ? 'Enviando...' : 'Guardar y enviar a revision'}
           </Button>
         </Stack>
 
@@ -890,7 +899,7 @@ export function CreateRegistrodeHoras() {
               '&:hover': { bgcolor: '#173a23' },
             }}
           >
-            Enviar a revisión
+            Guardar y enviar a revision
           </Button>
         </Stack>
       </Box>

@@ -101,27 +101,13 @@ class RegistroHorasModel
             $registros = isset($objeto->registros) && is_array($objeto->registros)
                 ? $objeto->registros
                 : [];
+            $allowEmptySync = isset($objeto->allow_empty_sync)
+                ? (bool) $objeto->allow_empty_sync
+                : false;
 
             $totalEliminados = 0;
-
-            if (isset($objeto->sync_period) && is_object($objeto->sync_period)) {
-                $syncUserId = isset($objeto->sync_period->id_usuario) ? trim($objeto->sync_period->id_usuario) : '';
-                $syncFechaInicio = isset($objeto->sync_period->fecha_inicio) ? trim($objeto->sync_period->fecha_inicio) : '';
-                $syncFechaFin = isset($objeto->sync_period->fecha_fin) ? trim($objeto->sync_period->fecha_fin) : '';
-
-                if ($syncUserId !== '' && $syncFechaInicio !== '' && $syncFechaFin !== '') {
-                    $syncUserId = addslashes($syncUserId);
-                    $syncFechaInicio = addslashes($syncFechaInicio);
-                    $syncFechaFin = addslashes($syncFechaFin);
-
-                    // Sincroniza el periodo: elimina lo existente y luego inserta lo enviado por la UI.
-                    $deletePeriodSql = "DELETE FROM registro_horas WHERE id_usuario='$syncUserId' AND fecha BETWEEN '$syncFechaInicio' AND '$syncFechaFin';";
-                    $totalEliminados = $this->enlace->executeSQL_DML($deletePeriodSql);
-                }
-            }
-
-            $insertados = [];
             $errores = [];
+            $registrosValidos = [];
 
             foreach ($registros as $indice => $registro) {
                 $idUsuario = isset($registro->id_usuario) ? trim($registro->id_usuario) : '';
@@ -140,11 +126,33 @@ class RegistroHorasModel
                 if ($horas > 10) {
                     $errores[] = [
                         'index' => $indice,
-                        'message' => 'La cantidad máxima por día es 10 horas.',
+                        'message' => 'La cantidad maxima por dia es 10 horas.',
                     ];
                     continue;
                 }
 
+                $registrosValidos[] = $registro;
+            }
+
+            if (isset($objeto->sync_period) && is_object($objeto->sync_period) && (!empty($registrosValidos) || $allowEmptySync)) {
+                $syncUserId = isset($objeto->sync_period->id_usuario) ? trim($objeto->sync_period->id_usuario) : '';
+                $syncFechaInicio = isset($objeto->sync_period->fecha_inicio) ? trim($objeto->sync_period->fecha_inicio) : '';
+                $syncFechaFin = isset($objeto->sync_period->fecha_fin) ? trim($objeto->sync_period->fecha_fin) : '';
+
+                if ($syncUserId !== '' && $syncFechaInicio !== '' && $syncFechaFin !== '') {
+                    $syncUserId = addslashes($syncUserId);
+                    $syncFechaInicio = addslashes($syncFechaInicio);
+                    $syncFechaFin = addslashes($syncFechaFin);
+
+                    // Sincroniza el periodo: elimina lo existente y luego inserta lo enviado por la UI.
+                    $deletePeriodSql = "DELETE FROM registro_horas WHERE id_usuario='$syncUserId' AND fecha BETWEEN '$syncFechaInicio' AND '$syncFechaFin';";
+                    $totalEliminados = $this->enlace->executeSQL_DML($deletePeriodSql);
+                }
+            }
+
+            $insertados = [];
+
+            foreach ($registrosValidos as $indice => $registro) {
                 try {
                     $insertados[] = $this->createOrReplaceDaily($registro);
                 } catch (Exception $innerException) {

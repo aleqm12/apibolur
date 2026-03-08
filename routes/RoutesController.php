@@ -18,7 +18,8 @@ class RoutesController
 
     public function routes() {
         $method = $_SERVER['REQUEST_METHOD'];
-        $path = strtolower($_SERVER['REQUEST_URI']);
+        $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $path = strtolower($requestPath ?? '');
 
         // Si la ruta es protegida, aplicar autenticación
         if ($this->isProtectedRoute($method, $path)) {
@@ -46,9 +47,12 @@ class RoutesController
     {
         //include "routes/routes.php";
         if (isset($_SERVER['REQUEST_URI']) && !empty($_SERVER['REQUEST_URI'])) {
+            $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $requestPath = $requestPath ?? '';
+
             //Gestion de imagenes
-            if (strpos($_SERVER['REQUEST_URI'], '/uploads/') === 0) {
-                $filePath = __DIR__ . $_SERVER['REQUEST_URI'];
+            if (strpos($requestPath, '/uploads/') === 0) {
+                $filePath = __DIR__ . $requestPath;
                 
                 // Verificar si el archivo existe
                 if (file_exists($filePath)) {
@@ -67,7 +71,7 @@ class RoutesController
                 http_response_code(200);
                 exit();
             }
-            $routesArray = explode("/", $_SERVER['REQUEST_URI']);
+            $routesArray = explode("/", $requestPath);
             // Eliminar elementos vacíos del array
             $routesArray = array_filter($routesArray);
 
