@@ -23,6 +23,8 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -38,6 +40,7 @@ export function CreateProject() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [projectFilter, setProjectFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
   const [projects, setProjects] = useState([]);
   const [subTaskMenuAnchorEl, setSubTaskMenuAnchorEl] = useState(null);
   const [selectedProjectSubTasks, setSelectedProjectSubTasks] = useState([]);
@@ -59,6 +62,7 @@ export function CreateProject() {
   });
   const [pendingDataForm, setPendingDataForm] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fieldLabels = {
     id_proyecto: 'ID del proyecto',
@@ -206,8 +210,11 @@ export function CreateProject() {
   };
 
   const validateUniqueIdsBeforeSave = (dataForm) => {
+    const normalizedProjectId = (dataForm.id_proyecto || '').trim().toLowerCase();
+    const normalizedEditingProjectId = (editingProjectId || '').trim().toLowerCase();
+
     const formSubTaskIds = dataForm.sub_tareas
-      .map((subTask) => (subTask.id_subtarea || '').trim())
+      .map((subTask) => (subTask.id_subtarea || '').trim().toLowerCase())
       .filter(Boolean);
 
     const subTaskIdCounts = formSubTaskIds.reduce((accumulator, idSubTask) => {
@@ -220,22 +227,22 @@ export function CreateProject() {
       .map(([idSubTask]) => idSubTask);
 
     const relevantProjects = isEditMode
-      ? projects.filter((projectItem) => projectItem.id_proyecto !== editingProjectId)
+      ? projects.filter((projectItem) => (projectItem.id_proyecto || '').trim().toLowerCase() !== normalizedEditingProjectId)
       : projects;
 
     const existingProjectIds = new Set(
-      relevantProjects.map((projectItem) => projectItem.id_proyecto)
+      relevantProjects.map((projectItem) => (projectItem.id_proyecto || '').trim().toLowerCase())
     );
 
     const existingSubTaskIds = new Set(
       relevantProjects.flatMap((projectItem) =>
         Array.isArray(projectItem.sub_tareas)
-          ? projectItem.sub_tareas.map((subTask) => subTask.id_subtarea)
+          ? projectItem.sub_tareas.map((subTask) => (subTask.id_subtarea || '').trim().toLowerCase())
           : []
       )
     );
 
-    const duplicateProjectId = existingProjectIds.has(dataForm.id_proyecto);
+    const duplicateProjectId = existingProjectIds.has(normalizedProjectId);
     const alreadyUsedSubTaskIds = [...new Set(formSubTaskIds.filter((idSubTask) => existingSubTaskIds.has(idSubTask)))];
 
     if (!duplicateProjectId && repeatedInForm.length === 0 && alreadyUsedSubTaskIds.length === 0) {
@@ -271,63 +278,68 @@ export function CreateProject() {
   };
 
   const saveProject = async (dataForm, editOperation = isEditMode) => {
-    const payloadProject = {
-      id_proyecto: dataForm.id_proyecto,
-      nombre_cliente: dataForm.nombre_cliente,
-      nombre_proyecto: dataForm.nombre_proyecto,
-      id_cliente: dataForm.id_cliente,
-    };
+    setIsSaving(true);
+    try {
+      const payloadProject = {
+        id_proyecto: dataForm.id_proyecto,
+        nombre_cliente: dataForm.nombre_cliente,
+        nombre_proyecto: dataForm.nombre_proyecto,
+        id_cliente: dataForm.id_cliente,
+      };
 
-    if (editOperation) {
-      await SubTaskService.deleteSubTasksByProject(editingProjectId);
+      if (editOperation) {
+        await SubTaskService.deleteSubTasksByProject(editingProjectId);
 
-      await ProjectService.updateProject({
-        ...payloadProject,
-        id_proyecto_original: editingProjectId,
-      });
+        await ProjectService.updateProject({
+          ...payloadProject,
+          id_proyecto_original: editingProjectId,
+        });
 
-      const subTaskResults = await SubTaskService.createSubTasksByProject(
-        dataForm.id_proyecto,
-        dataForm.sub_tareas
-      );
+        const subTaskResults = await SubTaskService.createSubTasksByProject(
+          dataForm.id_proyecto,
+          dataForm.sub_tareas
+        );
 
-      await loadProjects();
+        await loadProjects();
 
-      const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
+        const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
 
-      setSuccessDialog({
-        open: true,
-        title: failedSubTasks.length > 0 ? 'Proyecto modificado con observaciones' : 'Proyecto modificado correctamente',
-        message: failedSubTasks.length > 0
-          ? `Se modificó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
-          : `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
-      });
-    } else {
-      const projectResponse = await ProjectService.createProject(payloadProject);
-      setError(projectResponse.error);
+        setSuccessDialog({
+          open: true,
+          title: failedSubTasks.length > 0 ? 'Proyecto modificado con observaciones' : 'Proyecto modificado correctamente',
+          message: failedSubTasks.length > 0
+            ? `Se modificó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
+            : `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        });
+      } else {
+        const projectResponse = await ProjectService.createProject(payloadProject);
+        setError(projectResponse.error);
 
-      const subTaskResults = await SubTaskService.createSubTasksByProject(
-        dataForm.id_proyecto,
-        dataForm.sub_tareas
-      );
+        const subTaskResults = await SubTaskService.createSubTasksByProject(
+          dataForm.id_proyecto,
+          dataForm.sub_tareas
+        );
 
-      await loadProjects();
+        await loadProjects();
 
-      const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
+        const failedSubTasks = subTaskResults.filter((resultItem) => resultItem.status === 'rejected');
 
-      setSuccessDialog({
-        open: true,
-        title: failedSubTasks.length > 0 ? 'Proyecto agregado con observaciones' : 'Proyecto agregado correctamente',
-        message: failedSubTasks.length > 0
-          ? `Se agregó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
-          : `Se agregó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
-      });
+        setSuccessDialog({
+          open: true,
+          title: failedSubTasks.length > 0 ? 'Proyecto agregado con observaciones' : 'Proyecto agregado correctamente',
+          message: failedSubTasks.length > 0
+            ? `Se agregó el proyecto ${dataForm.nombre_proyecto}, pero ${failedSubTasks.length} sub tarea(s) no se pudieron guardar. Verifique que los IDs de sub tareas no estén repetidos.`
+            : `Se agregó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
+        });
+      }
+
+      reset(defaultValues);
+      setIsEditMode(false);
+      setEditingProjectId(null);
+      setIsFormOpen(false);
+    } finally {
+      setIsSaving(false);
     }
-
-    reset(defaultValues);
-    setIsEditMode(false);
-    setEditingProjectId(null);
-    setIsFormOpen(false);
   };
 
   const onSubmit = async (dataForm) => {
@@ -381,6 +393,7 @@ export function CreateProject() {
 
   const handleConfirmDialogAction = async () => {
     try {
+      setIsSaving(true);
       if (confirmDialog.type === 'edit' && pendingDataForm) {
         await saveProject(pendingDataForm, true);
         setPendingDataForm(null);
@@ -408,6 +421,7 @@ export function CreateProject() {
         ]
       );
     } finally {
+      setIsSaving(false);
       handleCloseConfirmDialog();
     }
   };
@@ -489,9 +503,17 @@ export function CreateProject() {
           .toLowerCase()
           .includes(filterText);
 
-      return matchesProject;
+      const matchesClient =
+        clientFilter.trim() === '' ||
+        (projectItem.nombre_cliente || '').toLowerCase() === clientFilter.toLowerCase();
+
+      return matchesProject && matchesClient;
     });
-  }, [projects, projectFilter]);
+  }, [projects, projectFilter, clientFilter]);
+
+  const clientOptions = useMemo(() => {
+    return [...new Set(projects.map((projectItem) => projectItem.nombre_cliente).filter(Boolean))].sort();
+  }, [projects]);
 
   if (error && error.message) return <p>Error: {error.message}</p>;
 
@@ -586,12 +608,35 @@ export function CreateProject() {
 
           <Grid size={12} sx={{ px: { xs: 2, md: 3 }, mb: 1 }}>
             <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-              <TextField
-                fullWidth
-                label="Buscar Proyecto (ID o Nombre)"
-                value={projectFilter}
-                onChange={(event) => setProjectFilter(event.target.value)}
-              />
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Buscar Proyecto (ID o Nombre)"
+                    value={projectFilter}
+                    onChange={(event) => setProjectFilter(event.target.value)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel id="cliente-filter-label">Filtrar por Cliente</InputLabel>
+                    <Select
+                      labelId="cliente-filter-label"
+                      id="cliente-filter"
+                      value={clientFilter}
+                      label="Filtrar por Cliente"
+                      onChange={(event) => setClientFilter(event.target.value)}
+                    >
+                      <MenuItem value="">Todos los clientes</MenuItem>
+                      {clientOptions.map((clientId) => (
+                        <MenuItem key={clientId} value={clientId}>
+                          {clientId}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
             </Paper>
           </Grid>
 
@@ -604,8 +649,8 @@ export function CreateProject() {
                       <TableCell sx={{ fontWeight: 700 }}>ID Cliente</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Cliente</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>ID Proyecto</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Nombre del Proyecto</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>Sub Tareas</TableCell>
+                      <TableCell sx={{ fontWeight: 700, width: '30%' }}>Nombre del Proyecto</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, width: 120, pr: 1 }}>Sub Tareas</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>Acciones</TableCell>
                     </TableRow>
                   </TableHead>
@@ -622,8 +667,10 @@ export function CreateProject() {
                           <TableCell>{projectItem.id_cliente}</TableCell>
                           <TableCell>{projectItem.nombre_cliente}</TableCell>
                           <TableCell>{projectItem.id_proyecto}</TableCell>
-                          <TableCell>{projectItem.nombre_proyecto}</TableCell>
-                          <TableCell align="right">
+                          <TableCell sx={{ maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {projectItem.nombre_proyecto}
+                          </TableCell>
+                          <TableCell align="right" sx={{ pr: 1 }}>
                             <Button
                               size="small"
                               variant="outlined"
@@ -835,8 +882,9 @@ export function CreateProject() {
                 color="primary"
                 form="create-project-form"
                 onClick={handleSubmit(onSubmit, onError)}
+                disabled={isSaving}
               >
-                {isEditMode ? 'Guardar Cambios' : 'Guardar'}
+                {isSaving ? 'Guardando...' : isEditMode ? 'Guardar Cambios' : 'Guardar'}
               </Button>
             </DialogActions>
           </Dialog>
@@ -895,8 +943,8 @@ export function CreateProject() {
               <Button variant="outlined" color="secondary" onClick={handleCloseConfirmDialog}>
                 Cancelar
               </Button>
-              <Button variant="contained" color="primary" onClick={handleConfirmDialogAction}>
-                Aceptar
+              <Button variant="contained" color="primary" onClick={handleConfirmDialogAction} disabled={isSaving}>
+                {isSaving ? 'Procesando...' : 'Aceptar'}
               </Button>
             </DialogActions>
           </Dialog>

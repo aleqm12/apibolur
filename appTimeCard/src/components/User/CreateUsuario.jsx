@@ -155,7 +155,7 @@ export function CreateUsuario() {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues,
     resolver: yupResolver(userSchema),
@@ -188,16 +188,23 @@ export function CreateUsuario() {
 
   const onSubmit = async (dataForm) => {
     try {
-      if (!isEditMode) {
-        const duplicatedUser = users.find((userItem) => userItem.id_usuario === dataForm.id_usuario);
-        if (duplicatedUser) {
-          setErrorDialog({
-            open: true,
-            title: 'No se puede crear el usuario',
-            messages: [`El ID ${dataForm.id_usuario} ya existe. Ingrese una cédula distinta.`],
-          });
-          return;
+      const normalizedId = (dataForm.id_usuario || '').trim();
+      const normalizedEditingId = (editingUserId || '').trim();
+      const duplicatedUser = users.find((userItem) => {
+        const currentId = (userItem.id_usuario || '').trim();
+        if (isEditMode && currentId === normalizedEditingId) {
+          return false;
         }
+        return currentId === normalizedId;
+      });
+
+      if (duplicatedUser) {
+        setErrorDialog({
+          open: true,
+          title: isEditMode ? 'No se puede modificar el usuario' : 'No se puede crear el usuario',
+          messages: [`El ID ${dataForm.id_usuario} ya existe. Ingrese una cédula distinta.`],
+        });
+        return;
       }
 
       const payloadUser = {
@@ -546,6 +553,11 @@ export function CreateUsuario() {
                         }}
                         error={Boolean(errors.id_usuario)}
                         helperText={errors.id_usuario ? errors.id_usuario.message : 'Ingrese la cédula de la persona, solo números y sin guiones. Ejemplo: 115130776'}
+                        FormHelperTextProps={{
+                          sx: {
+                            mb: 1,
+                          },
+                        }}
                       />
                     )}
                   />
@@ -692,8 +704,9 @@ export function CreateUsuario() {
                 color="primary"
                 form="create-usuario-form"
                 onClick={handleSubmit(onSubmit, onError)}
+                disabled={isSubmitting}
               >
-                Guardar
+                {isSubmitting ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogActions>
           </Dialog>
