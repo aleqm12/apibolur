@@ -428,9 +428,17 @@ export function CreateUsuario() {
                   Volver al Menú
                 </Button>
                 <Button
-                  variant="contained"
-                  color="error"
+                  variant="outlined"
                   onClick={handleLogout}
+                  sx={{
+                    color: 'secondary.contrastText',
+                    borderColor: 'secondary.contrastText',
+                    '&:hover': {
+                      borderColor: 'secondary.contrastText',
+                      backgroundColor: 'secondary.contrastText',
+                      color: 'secondary.main',
+                    },
+                  }}
                 >
                   Cerrar Sesión
                 </Button>

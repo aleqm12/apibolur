@@ -99,6 +99,16 @@ export function ActiveTimeSheet() {
 
   const fullName = `${currentUser.nombre || ''} ${currentUser.apellidos || ''}`.trim();
 
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
       <Paper elevation={0} sx={{ px: { xs: 2, md: 4 }, py: 2, borderRadius: 0, bgcolor: 'secondary.main', color: 'secondary.contrastText' }}>
@@ -108,10 +118,10 @@ export function ActiveTimeSheet() {
             <Typography variant="body2">{fullName || currentUser.id_usuario} | Semana: {currentWeekStart} a {currentWeekEnd}</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/registro-horas/crear')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/registro-horas/crear')}>
               Editar hoja
             </Button>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/registro-horas/historial')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/registro-horas/historial')}>
               Ver historial
             </Button>
           </Stack>

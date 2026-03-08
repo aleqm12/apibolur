@@ -8,6 +8,11 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
+import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
+import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined';
+import HistoryEduOutlinedIcon from '@mui/icons-material/HistoryEduOutlined';
+import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import { Link, useNavigate } from 'react-router-dom';
 
 export function AdminPanel() {
@@ -57,6 +62,16 @@ export function AdminPanel() {
     navigate('/');
   };
 
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   return (
     <Grid container spacing={1}>
       <Grid
@@ -95,14 +110,7 @@ export function AdminPanel() {
             <Button
               variant="outlined"
               onClick={handleLogout}
-              sx={{
-                color: 'secondary.contrastText',
-                borderColor: 'secondary.contrastText',
-                '&:hover': {
-                  borderColor: 'secondary.contrastText',
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                },
-              }}
+              sx={headerActionButtonSx}
             >
               Cerrar Sesión
             </Button>
@@ -110,22 +118,79 @@ export function AdminPanel() {
         </Grid>
       </Grid>
 
-      <Grid size={12} sx={{ px: { xs: 2, md: 3 } }}>
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, border: '1px solid', borderColor: 'divider' }}>
+      <Grid
+        size={12}
+        sx={{
+          px: { xs: 2, md: 3 },
+          minHeight: { xs: 'auto', md: 'calc(100vh - 245px)' },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, md: 4 },
+            border: '1px solid',
+            borderColor: 'divider',
+            width: '100%',
+            maxWidth: 560,
+          }}
+        >
           <Stack spacing={2} direction="column" alignItems="center">
-            <Button variant="contained" color="primary" size="large" component={Link} to="/user/create" sx={{ minWidth: 320 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              component={Link}
+              to="/user/create"
+              startIcon={<GroupOutlinedIcon />}
+              sx={{ minWidth: 320 }}
+            >
               Usuarios
             </Button>
-            <Button variant="contained" color="primary" size="large" component={Link} to="/project/crear/" sx={{ minWidth: 320 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              component={Link}
+              to="/project/crear/"
+              startIcon={<FolderOpenOutlinedIcon />}
+              sx={{ minWidth: 320 }}
+            >
               Proyectos
             </Button>
-            <Button variant="contained" color="primary" size="large" component={Link} to="/aprobaciones/crear" sx={{ minWidth: 320 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              component={Link}
+              to="/aprobaciones/crear"
+              startIcon={<RuleFolderOutlinedIcon />}
+              sx={{ minWidth: 320 }}
+            >
               Aprobaciones
             </Button>
-            <Button variant="outlined" color="secondary" size="large" component={Link} to="/admin/aprobaciones/historial" sx={{ minWidth: 320 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              component={Link}
+              to="/admin/aprobaciones/historial"
+              startIcon={<HistoryEduOutlinedIcon />}
+              sx={{ minWidth: 320 }}
+            >
               Historial Aprobaciones
             </Button>
-            <Button variant="outlined" color="secondary" size="large" disabled sx={{ minWidth: 320 }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="large"
+              disabled
+              startIcon={<SpaceDashboardOutlinedIcon />}
+              sx={{ minWidth: 320 }}
+            >
               Dashboard
             </Button>
           </Stack>

@@ -164,6 +164,16 @@ export function HistorialHojasTiempo() {
     navigate(`/registro-horas/crear?modo=editar&inicio=${selectedSheet.periodStart}&fin=${selectedSheet.periodEnd}`);
   };
 
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   if (!currentUser) {
     return null;
   }
@@ -177,10 +187,10 @@ export function HistorialHojasTiempo() {
             <Typography variant="body2">Seleccione una hoja para editarla por periodo.</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/registro-horas/crear')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/registro-horas/crear')}>
               Crear nueva hoja
             </Button>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/')}>
               Volver al inicio
             </Button>
           </Stack>

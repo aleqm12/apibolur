@@ -95,6 +95,22 @@ export function HistorialAprobaciones() {
     return [...unique];
   }, [rows]);
 
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/user/login');
+  };
+
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   if (!currentUser) {
     return null;
   }
@@ -107,9 +123,14 @@ export function HistorialAprobaciones() {
             <Typography variant="h5" sx={{ fontWeight: 700 }}>Historial de Aprobaciones</Typography>
             <Typography variant="body2">Auditoria de decisiones de aprobacion y rechazo.</Typography>
           </Box>
-          <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/admin/panel')}>
-            Volver al panel
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
+              Volver al panel
+            </Button>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
+              Cerrar sesión
+            </Button>
+          </Stack>
         </Stack>
       </Paper>
 

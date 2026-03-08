@@ -242,6 +242,16 @@ export function CreateAprobaciones() {
     .map((segment) => segment[0].toUpperCase())
     .join('') || 'AD';
 
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
       <Paper
@@ -283,10 +293,10 @@ export function CreateAprobaciones() {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/admin/panel')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
               Volver al menu
             </Button>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={handleLogout}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
               Cerrar sesion
             </Button>
           </Stack>

@@ -578,6 +578,16 @@ export function CreateRegistrodeHoras() {
     });
   };
 
+  const headerActionButtonSx = {
+    color: 'secondary.contrastText',
+    borderColor: 'secondary.contrastText',
+    '&:hover': {
+      borderColor: 'secondary.contrastText',
+      backgroundColor: 'secondary.contrastText',
+      color: 'secondary.main',
+    },
+  };
+
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
       <Paper
@@ -625,10 +635,10 @@ export function CreateRegistrodeHoras() {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={() => navigate('/')}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/')}>
               Volver al menu
             </Button>
-            <Button variant="outlined" sx={{ color: 'secondary.contrastText', borderColor: 'secondary.contrastText' }} onClick={handleLogout}>
+            <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
               Cerrar sesión
             </Button>
           </Stack>
