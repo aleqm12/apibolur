@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -65,21 +65,6 @@ const buildEmptyRow = (weekDays) => ({
   estado_aprobacion: 'Pendiente',
   horasPorDia: buildHoursByWeek(weekDays),
 });
-
-const buildRowFromRegistro = (weekDays, registro, projectIdFromSubTaskMap) => ({
-  id: `db-${registro.id_registro || Math.random().toString(36).slice(2, 8)}`,
-  id_proyecto: registro.id_proyecto || projectIdFromSubTaskMap[registro.id_subtarea] || '',
-  id_subtarea: registro.id_subtarea || '',
-  comentarios: registro.comentarios || '',
-  estado_aprobacion: 'Pendiente',
-  horasPorDia: buildHoursByWeek(weekDays, {
-    [registro.fecha]: Number(registro.horas),
-  }),
-});
-
-const buildRowKey = (row) => {
-  return [row.id_proyecto || '', row.id_subtarea || '', (row.comentarios || '').trim()].join('|');
-};
 
 const normalizeHourValue = (value) => {
   if (value === '' || value === null || typeof value === 'undefined') {
@@ -186,88 +171,6 @@ export function CreateRegistrodeHoras() {
       return accumulator;
     }, {});
   }, [projects]);
-
-  const projectIdFromSubTaskMap = useMemo(() => {
-    const map = {};
-
-    projects.forEach((project) => {
-      if (!Array.isArray(project.sub_tareas)) {
-        return;
-      }
-
-      project.sub_tareas.forEach((subTask) => {
-        map[subTask.id_subtarea] = project.id_proyecto;
-      });
-    });
-
-    return map;
-  }, [projects]);
-
-  const loadRowsByUserAndPeriod = useCallback(async (preferredOrderKeys = []) => {
-    try {
-      const response = await RegistroHorasService.getByUser(idUsuario);
-      const registros = Array.isArray(response?.data) ? response.data : [];
-
-      const filteredRegistros = registros.filter((registro) => {
-        return registro.fecha >= periodStart && registro.fecha <= periodEnd;
-      });
-
-      if (filteredRegistros.length === 0) {
-        setRows([buildEmptyRow(weekDays)]);
-        return;
-      }
-
-      const groupedRows = filteredRegistros.reduce((accumulator, registro) => {
-        const groupKey = [
-          registro.id_proyecto || projectIdFromSubTaskMap[registro.id_subtarea] || '',
-          registro.id_subtarea || '',
-          (registro.comentarios || '').trim(),
-        ].join('|');
-
-        if (!accumulator[groupKey]) {
-          accumulator[groupKey] = buildRowFromRegistro(weekDays, registro, projectIdFromSubTaskMap);
-        } else {
-          accumulator[groupKey].horasPorDia[registro.fecha] = Number(registro.horas);
-        }
-
-        return accumulator;
-      }, {});
-
-      const hydratedRows = Object.values(groupedRows);
-
-      if (preferredOrderKeys.length > 0) {
-        const orderMap = preferredOrderKeys.reduce((accumulator, key, index) => {
-          accumulator[key] = index;
-          return accumulator;
-        }, {});
-
-        hydratedRows.sort((a, b) => {
-          const keyA = buildRowKey(a);
-          const keyB = buildRowKey(b);
-          const indexA = Object.prototype.hasOwnProperty.call(orderMap, keyA) ? orderMap[keyA] : Number.MAX_SAFE_INTEGER;
-          const indexB = Object.prototype.hasOwnProperty.call(orderMap, keyB) ? orderMap[keyB] : Number.MAX_SAFE_INTEGER;
-
-          if (indexA === indexB) {
-            return keyA.localeCompare(keyB);
-          }
-
-          return indexA - indexB;
-        });
-      }
-
-      setRows(hydratedRows.length > 0 ? hydratedRows : [buildEmptyRow(weekDays)]);
-    } catch {
-      toast.error('No fue posible cargar los registros guardados del periodo.');
-    }
-  }, [idUsuario, periodStart, periodEnd, weekDays, projectIdFromSubTaskMap]);
-
-  useEffect(() => {
-    if (projects.length === 0) {
-      return;
-    }
-
-    loadRowsByUserAndPeriod();
-  }, [projects, loadRowsByUserAndPeriod]);
 
   const handleAddRow = () => {
     setRows((currentRows) => [...currentRows, buildEmptyRow(weekDays)]);
@@ -527,8 +430,6 @@ export function CreateRegistrodeHoras() {
         toast.error('No se logró guardar ningún registro.');
       }
 
-      const preferredOrderKeys = rows.map((row) => buildRowKey(row));
-      await loadRowsByUserAndPeriod(preferredOrderKeys);
       setSelectedRowIds([]);
     } catch {
       toast.error('No fue posible guardar la hoja de tiempo.');
@@ -640,9 +541,14 @@ export function CreateRegistrodeHoras() {
               </Typography>
             </Box>
           </Stack>
-          <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={handleLogout}>
-            Cerrar sesión
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={() => navigate('/')}>
+              Volver al menu
+            </Button>
+            <Button variant="outlined" sx={{ color: '#ecf6ff', borderColor: '#ecf6ff' }} onClick={handleLogout}>
+              Cerrar sesión
+            </Button>
+          </Stack>
         </Stack>
       </Paper>
 

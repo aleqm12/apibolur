@@ -18,7 +18,10 @@ import { CreateUsuario } from "./components/User/CreateUsuario";
 import { LoginUsuario } from "./components/User/LoginUsuario";
 import { LogoutUsuario } from "./components/User/LogoutUsuario";
 import { AdminPanel } from "./components/Admin/AdminPanel";
+import { HistorialAprobaciones } from "./components/Admin/HistorialAprobaciones";
 import { CreateRegistrodeHoras } from "./components/TimeCard/CreateRegistrodeHoras";
+import { ActiveTimeSheet } from "./components/TimeCard/ActiveTimeSheet";
+import { HistorialHojasTiempo } from "./components/TimeCard/HistorialHojasTiempo";
 import { CreateAprobaciones } from "./components/TimeCard/CreateAprobaciones";
 const rutas=createBrowserRouter(
   [
@@ -74,8 +77,20 @@ const rutas=createBrowserRouter(
           element: <CreateRegistrodeHoras />
         },
         {
+          path:'/registro-horas/activa',
+          element: <ActiveTimeSheet />
+        },
+        {
+          path:'/registro-horas/historial',
+          element: <HistorialHojasTiempo />
+        },
+        {
           path:'/aprobaciones/crear',
           element: <CreateAprobaciones />
+        },
+        {
+          path:'/admin/aprobaciones/historial',
+          element: <HistorialAprobaciones />
         },
         {
           path:'/user/create',

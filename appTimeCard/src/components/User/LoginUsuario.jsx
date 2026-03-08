@@ -50,7 +50,7 @@ export function LoginUsuario() {
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
 
-      toast.success(`Bienvenido, ${authUser.nombre}.`);
+      toast.success(`Bienvenido(a), ${authUser.nombre}.`);
 
       if (isAdminUser(authUser)) {
         navigate('/admin/panel');
@@ -108,8 +108,16 @@ export function LoginUsuario() {
 
       <Stack spacing={4} sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 460 }}>
         <Box textAlign="center">
-          <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '0.18em', color: 'secondary.main' }}>
-            Bolur Engineers S.A.
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              letterSpacing: { xs: '0.08em', md: '0.18em' },
+              fontSize: { xs: '1.9rem', md: '2.5rem' },
+              color: 'secondary.main',
+            }}
+          >
+            {'B\u00f6lur Engineers S.A.'}
           </Typography>
           <Typography variant="h6" sx={{ mt: 1.5, letterSpacing: '0.14em', color: 'secondary.main' }}>
             Gestion de Horas - Lineas de Transmision

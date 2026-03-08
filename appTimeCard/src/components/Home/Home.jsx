@@ -93,7 +93,7 @@ export function Home() {
         color="secondary.main" 
         gutterBottom 
       > 
-        Bienvenido
+        Bienvenido(a)
         </Typography> 
       <Typography variant="h5" align="center" color="secondary.main" sx={{ mb: 2, fontWeight: 600 }}> 
         {nombreCompleto || 'Usuario'}
@@ -103,8 +103,11 @@ export function Home() {
         <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ minWidth: 320 }}>
           Crear una nueva hoja de tiempo
         </Button>
-        <Button variant="contained" color="primary" size="large" sx={{ minWidth: 320 }}>
+        <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/activa" sx={{ minWidth: 320 }}>
           Hoja de Tiempo Activa
+        </Button>
+        <Button variant="outlined" color="secondary" size="large" component={Link} to="/registro-horas/historial" sx={{ minWidth: 320 }}>
+          Historial de Hojas de Tiempo
         </Button>
         <Button variant="outlined" color="secondary" size="large" component={Link} to="/admin/panel" sx={{ minWidth: 320 }}>
           Panel de Administración
