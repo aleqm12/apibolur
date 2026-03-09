@@ -139,14 +139,27 @@ export function HistorialHojasTiempo() {
           periodEnd,
           totalRegistros: 0,
           totalHoras: 0,
+          horasAprobadas: 0,
+          horasPendientes: 0,
+          horasRechazadas: 0,
           estados: new Set(),
           feedbacks: new Set(),
         };
       }
 
+      const horasRow = Number(row.horas || 0);
       accumulator[key].totalRegistros += 1;
-      accumulator[key].totalHoras += Number(row.horas || 0);
+      accumulator[key].totalHoras += horasRow;
       accumulator[key].estados.add(row.estado_aprobacion || 'Pendiente');
+
+      if ((row.estado_aprobacion || 'Pendiente') === 'Aprobado') {
+        accumulator[key].horasAprobadas += horasRow;
+      } else if ((row.estado_aprobacion || 'Pendiente') === 'Rechazado') {
+        accumulator[key].horasRechazadas += horasRow;
+      } else {
+        accumulator[key].horasPendientes += horasRow;
+      }
+
       if ((row.estado_aprobacion || '') === 'Rechazado' && row.motivo_rechazo_admin) {
         accumulator[key].feedbacks.add(row.motivo_rechazo_admin);
       }
@@ -159,7 +172,9 @@ export function HistorialHojasTiempo() {
         const estados = [...sheet.estados];
         let estadoHoja = 'Pendiente';
 
-        if (estados.includes('Rechazado')) {
+        if (sheet.horasAprobadas > 0 && (sheet.horasPendientes > 0 || sheet.horasRechazadas > 0)) {
+          estadoHoja = 'Parcial';
+        } else if (estados.includes('Rechazado')) {
           estadoHoja = 'Rechazado';
         } else if (estados.includes('Pendiente')) {
           estadoHoja = 'Pendiente';
@@ -376,6 +391,9 @@ export function HistorialHojasTiempo() {
                 <TableCell>Periodo</TableCell>
                 <TableCell align="right">Registros</TableCell>
                 <TableCell align="right">Horas</TableCell>
+                <TableCell align="right">Aprob. (h)</TableCell>
+                <TableCell align="right">Pend. (h)</TableCell>
+                <TableCell align="right">Rech. (h)</TableCell>
                 <TableCell align="center">Estado Envio</TableCell>
                 <TableCell align="center">Estado</TableCell>
                 <TableCell>Retroalimentacion</TableCell>
@@ -384,11 +402,11 @@ export function HistorialHojasTiempo() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">Cargando historial...</TableCell>
+                  <TableCell colSpan={10} align="center">Cargando historial...</TableCell>
                 </TableRow>
               ) : sheets.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">No hay hojas con los filtros actuales.</TableCell>
+                  <TableCell colSpan={10} align="center">No hay hojas con los filtros actuales.</TableCell>
                 </TableRow>
               ) : (
                 sheets.map((sheet) => (
@@ -399,6 +417,9 @@ export function HistorialHojasTiempo() {
                     <TableCell>{sheet.periodStart} a {sheet.periodEnd}</TableCell>
                     <TableCell align="right">{sheet.totalRegistros}</TableCell>
                     <TableCell align="right">{Number(sheet.totalHoras || 0).toFixed(2)}</TableCell>
+                    <TableCell align="right">{Number(sheet.horasAprobadas || 0).toFixed(2)}</TableCell>
+                    <TableCell align="right">{Number(sheet.horasPendientes || 0).toFixed(2)}</TableCell>
+                    <TableCell align="right">{Number(sheet.horasRechazadas || 0).toFixed(2)}</TableCell>
                     <TableCell align="center">
                       <Chip
                         size="small"

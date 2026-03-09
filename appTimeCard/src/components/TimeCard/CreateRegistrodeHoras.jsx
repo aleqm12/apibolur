@@ -59,6 +59,13 @@ const buildHoursByWeek = (weekDays, previousHours = {}) => {
   }, {});
 };
 
+const buildEstadoByWeek = (weekDays, previousEstado = {}) => {
+  return weekDays.reduce((accumulator, day) => {
+    accumulator[day.iso] = previousEstado[day.iso] || '';
+    return accumulator;
+  }, {});
+};
+
 const buildEmptyRow = (weekDays) => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   id_proyecto: '',
@@ -66,6 +73,7 @@ const buildEmptyRow = (weekDays) => ({
   comentarios: '',
   estado_aprobacion: 'Pendiente',
   horasPorDia: buildHoursByWeek(weekDays),
+  estadoPorDia: buildEstadoByWeek(weekDays),
 });
 
 const buildRowFromRegistro = (weekDays, registro, projectIdFromSubTaskMap) => ({
@@ -77,7 +85,30 @@ const buildRowFromRegistro = (weekDays, registro, projectIdFromSubTaskMap) => ({
   horasPorDia: buildHoursByWeek(weekDays, {
     [registro.fecha]: Number(registro.horas),
   }),
+  estadoPorDia: buildEstadoByWeek(weekDays, {
+    [registro.fecha]: registro.estado_aprobacion || 'Pendiente',
+  }),
 });
+
+const getCellStateRank = (estado) => {
+  if (estado === 'Rechazado') {
+    return 3;
+  }
+
+  if (estado === 'Pendiente') {
+    return 2;
+  }
+
+  if (estado === 'Aprobado') {
+    return 1;
+  }
+
+  return 0;
+};
+
+const pickCellState = (currentEstado, nextEstado) => {
+  return getCellStateRank(nextEstado) >= getCellStateRank(currentEstado) ? nextEstado : currentEstado;
+};
 
 const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
 
@@ -220,6 +251,7 @@ export function CreateRegistrodeHoras() {
       currentRows.map((row) => ({
         ...row,
         horasPorDia: buildHoursByWeek(weekDays, row.horasPorDia),
+        estadoPorDia: buildEstadoByWeek(weekDays, row.estadoPorDia || {}),
       }))
     );
   }, [weekDays]);
@@ -299,6 +331,8 @@ export function CreateRegistrodeHoras() {
           };
         } else {
           accumulator[groupKey].horasPorDia[registro.fecha] = Number(registro.horas);
+          const estadoActualDia = accumulator[groupKey].estadoPorDia[registro.fecha] || '';
+          accumulator[groupKey].estadoPorDia[registro.fecha] = pickCellState(estadoActualDia, registro.estado_aprobacion || 'Pendiente');
           accumulator[groupKey].estadoSet.add(registro.estado_aprobacion || 'Pendiente');
           if (registro.motivo_rechazo_admin) {
             accumulator[groupKey].rechazoFeedback.push(registro.motivo_rechazo_admin);
@@ -350,6 +384,7 @@ export function CreateRegistrodeHoras() {
         ...row,
         id: row.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         horasPorDia: buildHoursByWeek(weekDays, row.horasPorDia || {}),
+        estadoPorDia: buildEstadoByWeek(weekDays, row.estadoPorDia || {}),
       }));
 
       setRows(normalizedRows);
@@ -429,6 +464,13 @@ export function CreateRegistrodeHoras() {
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       comentarios,
+      estadoPorDia: Object.entries(currentRow.horasPorDia || {}).reduce((accumulator, [dayIso, horas]) => {
+        const numericHoras = Number(horas);
+        accumulator[dayIso] = Number.isFinite(numericHoras) && numericHoras > 0
+          ? 'Pendiente'
+          : '';
+        return accumulator;
+      }, {}),
     }));
   };
 
@@ -473,11 +515,16 @@ export function CreateRegistrodeHoras() {
 
   const handleHourChange = (rowId, dayIso, value) => {
     markAsPendingIfSent();
+    const normalizedHours = normalizeHourValue(value);
     updateRow(rowId, (currentRow) => ({
       ...currentRow,
       horasPorDia: {
         ...currentRow.horasPorDia,
-        [dayIso]: normalizeHourValue(value),
+        [dayIso]: normalizedHours,
+      },
+      estadoPorDia: {
+        ...(currentRow.estadoPorDia || {}),
+        [dayIso]: Number(normalizedHours) > 0 ? 'Pendiente' : '',
       },
     }));
   };
@@ -508,6 +555,44 @@ export function CreateRegistrodeHoras() {
   const totalHoras = useMemo(() => {
     return rows.reduce((accumulator, row) => accumulator + sumHours(row.horasPorDia), 0);
   }, [rows]);
+
+  const compactEstadoResumen = useMemo(() => {
+    const resumen = {
+      aprobadas: 0,
+      pendientes: 0,
+      rechazadas: 0,
+    };
+
+    rows.forEach((row) => {
+      weekDays.forEach((day) => {
+        const horas = Number(row.horasPorDia?.[day.iso]);
+        if (!Number.isFinite(horas) || horas <= 0) {
+          return;
+        }
+
+        const estadoDia = row.estadoPorDia?.[day.iso] || row.estado_aprobacion_display || row.estado_aprobacion || 'Pendiente';
+
+        if (estadoDia === 'Aprobado') {
+          resumen.aprobadas += horas;
+        } else if (estadoDia === 'Rechazado') {
+          resumen.rechazadas += horas;
+        } else {
+          resumen.pendientes += horas;
+        }
+      });
+    });
+
+    return resumen;
+  }, [rows, weekDays]);
+
+  const resolveCellEstado = (row, dayIso) => {
+    const horas = Number(row.horasPorDia?.[dayIso]);
+    if (!Number.isFinite(horas) || horas <= 0) {
+      return '';
+    }
+
+    return row.estadoPorDia?.[dayIso] || row.estado_aprobacion_display || row.estado_aprobacion || 'Pendiente';
+  };
 
   const clientOptions = useMemo(() => {
     const optionMap = {};
@@ -1143,6 +1228,17 @@ export function CreateRegistrodeHoras() {
                     </TableCell>
                     {weekDays.map((day) => (
                       <TableCell key={day.iso} align="center">
+                        {(() => {
+                          const estadoDia = resolveCellEstado(row, day.iso);
+                          const stateBgColor = estadoDia === 'Aprobado'
+                            ? '#e8f5e9'
+                            : estadoDia === 'Rechazado'
+                              ? '#ffebee'
+                              : estadoDia === 'Pendiente'
+                                ? '#fffde7'
+                                : 'transparent';
+
+                          return (
                         <TextField
                           type="number"
                           size="small"
@@ -1152,9 +1248,17 @@ export function CreateRegistrodeHoras() {
                           }}
                           inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.5 }}
                           onChange={(event) => handleHourChange(row.id, day.iso, event.target.value)}
-                          sx={{ width: 108 }}
+                          sx={{
+                            width: 108,
+                            '& .MuiInputBase-root': {
+                              backgroundColor: stateBgColor,
+                            },
+                          }}
+                          title={estadoDia ? `Estado: ${estadoDia}` : ''}
                           disabled={isReadOnlyMode}
                         />
+                          );
+                        })()}
                       </TableCell>
                     ))}
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
@@ -1173,6 +1277,24 @@ export function CreateRegistrodeHoras() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mt: 1.5 }}>
+          <Chip
+            size="small"
+            label={`Aprobadas: ${compactEstadoResumen.aprobadas.toFixed(2)} h`}
+            sx={aprobadoChipSx}
+          />
+          <Chip
+            size="small"
+            label={`Pendientes: ${compactEstadoResumen.pendientes.toFixed(2)} h`}
+            sx={pendienteChipSx}
+          />
+          <Chip
+            size="small"
+            label={`Rechazadas: ${compactEstadoResumen.rechazadas.toFixed(2)} h`}
+            sx={rechazadoChipSx}
+          />
+        </Stack>
 
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Box
