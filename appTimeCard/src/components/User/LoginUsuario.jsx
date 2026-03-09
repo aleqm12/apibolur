@@ -4,6 +4,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
@@ -11,8 +12,6 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
@@ -23,6 +22,7 @@ import UserService from '../../services/UserService';
 
 const isAdminUser = (user) => String(user?.id_rol) === '1' || user?.nombre_rol === 'Administrador';
 const REMEMBER_ID_COOKIE = 'rememberedUserId';
+const USER_ID_HISTORY_COOKIE = 'loginUserIdHistory';
 
 const readCookie = (name) => {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -35,16 +35,40 @@ const setCookie = (name, value, days) => {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
 };
 
-const deleteCookie = (name) => {
-  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+const readIdHistory = () => {
+  try {
+    const raw = readCookie(USER_ID_HISTORY_COOKIE);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index)
+      .slice(0, 8);
+  } catch {
+    return [];
+  }
+};
+
+const saveIdHistory = (idUsuario) => {
+  const normalizedId = String(idUsuario || '').trim();
+  if (!normalizedId) {
+    return;
+  }
+
+  const history = readIdHistory();
+  const nextHistory = [normalizedId, ...history.filter((item) => item !== normalizedId)].slice(0, 8);
+  setCookie(USER_ID_HISTORY_COOKIE, JSON.stringify(nextHistory), 30);
 };
 
 export function LoginUsuario() {
   const navigate = useNavigate();
   const [idUsuario, setIdUsuario] = useState('');
+  const [idSuggestions, setIdSuggestions] = useState([]);
   const [password, setPassword] = useState('');
-  const [knownUserIds, setKnownUserIds] = useState([]);
-  const [rememberUserId, setRememberUserId] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDialog, setErrorDialog] = useState({
@@ -57,18 +81,9 @@ export function LoginUsuario() {
     const rememberedId = readCookie(REMEMBER_ID_COOKIE);
     if (rememberedId) {
       setIdUsuario(rememberedId);
-      setRememberUserId(true);
     }
 
-    UserService.getUsers()
-      .then((response) => {
-        const users = Array.isArray(response?.data) ? response.data : [];
-        const uniqueIds = [...new Set(users.map((userItem) => String(userItem?.id_usuario || '').trim()).filter(Boolean))];
-        setKnownUserIds(uniqueIds);
-      })
-      .catch(() => {
-        setKnownUserIds([]);
-      });
+    setIdSuggestions(readIdHistory());
   }, []);
 
   const openErrorDialog = (title, message) => {
@@ -113,11 +128,10 @@ export function LoginUsuario() {
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
 
-      if (rememberUserId) {
-        setCookie(REMEMBER_ID_COOKIE, idUsuario.trim(), 30);
-      } else {
-        deleteCookie(REMEMBER_ID_COOKIE);
-      }
+      const normalizedId = idUsuario.trim();
+      setCookie(REMEMBER_ID_COOKIE, normalizedId, 30);
+      saveIdHistory(normalizedId);
+      setIdSuggestions(readIdHistory());
 
       toast.success(`Inicio de sesión correcto para ${authUser.nombre}.`);
 
@@ -206,41 +220,50 @@ export function LoginUsuario() {
         >
           <form onSubmit={handleSubmit} noValidate>
             <Stack spacing={2.2}>
-              <TextField
-                label="ID Usuario"
-                value={idUsuario}
-                onChange={(event) => setIdUsuario(event.target.value.replace(/\D/g, ''))}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonOutlineIcon />
-                    </InputAdornment>
-                  ),
-                }}
-                inputProps={{
-                  list: 'known-user-ids',
-                  inputMode: 'numeric',
-                  pattern: '[0-9]*',
-                  maxLength: 20,
-                  spellCheck: false,
-                  autoCorrect: 'off',
-                  autoCapitalize: 'none',
-                }}
-                autoComplete="off"
-                fullWidth
+              <Autocomplete
+                freeSolo
+                forcePopupIcon={false}
+                openOnFocus={false}
+                options={idSuggestions}
+                inputValue={idUsuario}
+                onInputChange={(_, newValue) => setIdUsuario(String(newValue || '').replace(/\D/g, ''))}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="ID Usuario"
+                    fullWidth
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PersonOutlineIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                    inputProps={{
+                      ...params.inputProps,
+                      inputMode: 'numeric',
+                      pattern: '[0-9]*',
+                      maxLength: 20,
+                      spellCheck: false,
+                      autoCorrect: 'off',
+                      autoCapitalize: 'none',
+                    }}
+                    autoComplete="username"
+                    sx={{
+                      '& .MuiAutocomplete-endAdornment': { display: 'none' },
+                    }}
+                  />
+                )}
               />
-
-              <datalist id="known-user-ids">
-                {knownUserIds.map((userId) => (
-                  <option key={userId} value={userId} />
-                ))}
-              </datalist>
 
               <TextField
                 label="Contrasena"
+                name="login-password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                autoComplete="new-password"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -256,11 +279,6 @@ export function LoginUsuario() {
                   ),
                 }}
                 fullWidth
-              />
-
-              <FormControlLabel
-                control={<Checkbox checked={rememberUserId} onChange={(event) => setRememberUserId(event.target.checked)} color="secondary" />}
-                label="Recordar mi ID de usuario"
               />
 
               <Button
