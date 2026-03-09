@@ -30,6 +30,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import UserService from '../../services/UserService';
+import GrammarSuggestionService from '../../services/GrammarSuggestionService';
 
 const getPasswordValidationMessage = (passwordValue) => {
   if (passwordValue.length < 8) {
@@ -71,6 +72,14 @@ export function CreateUsuario() {
     messages: [],
   });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [nameSuggestions, setNameSuggestions] = useState({
+    nombre: '',
+    apellidos: '',
+  });
+  const [checkingSuggestions, setCheckingSuggestions] = useState({
+    nombre: false,
+    apellidos: false,
+  });
 
   const fieldLabels = {
     id_usuario: 'ID de usuario',
@@ -165,6 +174,7 @@ export function CreateUsuario() {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues,
@@ -370,6 +380,52 @@ export function CreateUsuario() {
         messages: ['No se pudo eliminar el usuario.'],
       });
     }
+  };
+
+  const handleReviewNameField = async (fieldName, textValue) => {
+    const normalizedValue = (textValue || '').trim();
+
+    if (normalizedValue.length < 3) {
+      setNameSuggestions((current) => ({
+        ...current,
+        [fieldName]: '',
+      }));
+      setCheckingSuggestions((current) => ({
+        ...current,
+        [fieldName]: false,
+      }));
+      return;
+    }
+
+    setCheckingSuggestions((current) => ({
+      ...current,
+      [fieldName]: true,
+    }));
+
+    const suggestions = await GrammarSuggestionService.checkText(normalizedValue, 'es');
+    const firstSuggestion = suggestions.find((item) => item.replacement);
+
+    setNameSuggestions((current) => ({
+      ...current,
+      [fieldName]: firstSuggestion?.replacement || '',
+    }));
+    setCheckingSuggestions((current) => ({
+      ...current,
+      [fieldName]: false,
+    }));
+  };
+
+  const applyNameSuggestion = (fieldName) => {
+    const suggestedValue = (nameSuggestions[fieldName] || '').trim();
+    if (!suggestedValue) {
+      return;
+    }
+
+    setValue(fieldName, suggestedValue, { shouldDirty: true, shouldValidate: true });
+    setNameSuggestions((current) => ({
+      ...current,
+      [fieldName]: '',
+    }));
   };
 
   useEffect(() => {
@@ -599,14 +655,33 @@ export function CreateUsuario() {
                     name="nombre"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        id="nombre"
-                        label="Nombre"
-                        error={Boolean(errors.nombre)}
-                        helperText={errors.nombre ? errors.nombre.message : ' '}
-                      />
+                      <>
+                        <TextField
+                          {...field}
+                          fullWidth
+                          id="nombre"
+                          label="Nombre"
+                          error={Boolean(errors.nombre)}
+                          onBlur={(event) => {
+                            field.onBlur();
+                            handleReviewNameField('nombre', event.target.value);
+                          }}
+                          helperText={
+                            errors.nombre
+                              ? errors.nombre.message
+                              : checkingSuggestions.nombre
+                                ? 'Revisando ortografia...'
+                                : nameSuggestions.nombre
+                                  ? `Sugerencia: ${nameSuggestions.nombre}`
+                                  : ' '
+                          }
+                        />
+                        {nameSuggestions.nombre ? (
+                          <Button size="small" variant="text" onClick={() => applyNameSuggestion('nombre')} sx={{ mt: 0.5 }}>
+                            Aplicar sugerencia
+                          </Button>
+                        ) : null}
+                      </>
                     )}
                   />
                 </Grid>
@@ -616,14 +691,33 @@ export function CreateUsuario() {
                     name="apellidos"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        id="apellidos"
-                        label="Apellidos"
-                        error={Boolean(errors.apellidos)}
-                        helperText={errors.apellidos ? errors.apellidos.message : ' '}
-                      />
+                      <>
+                        <TextField
+                          {...field}
+                          fullWidth
+                          id="apellidos"
+                          label="Apellidos"
+                          error={Boolean(errors.apellidos)}
+                          onBlur={(event) => {
+                            field.onBlur();
+                            handleReviewNameField('apellidos', event.target.value);
+                          }}
+                          helperText={
+                            errors.apellidos
+                              ? errors.apellidos.message
+                              : checkingSuggestions.apellidos
+                                ? 'Revisando ortografia...'
+                                : nameSuggestions.apellidos
+                                  ? `Sugerencia: ${nameSuggestions.apellidos}`
+                                  : ' '
+                          }
+                        />
+                        {nameSuggestions.apellidos ? (
+                          <Button size="small" variant="text" onClick={() => applyNameSuggestion('apellidos')} sx={{ mt: 0.5 }}>
+                            Aplicar sugerencia
+                          </Button>
+                        ) : null}
+                      </>
                     )}
                   />
                 </Grid>

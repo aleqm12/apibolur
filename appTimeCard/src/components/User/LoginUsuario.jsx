@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -11,6 +11,8 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
@@ -20,11 +22,28 @@ import toast from 'react-hot-toast';
 import UserService from '../../services/UserService';
 
 const isAdminUser = (user) => String(user?.id_rol) === '1' || user?.nombre_rol === 'Administrador';
+const REMEMBER_ID_COOKIE = 'rememberedUserId';
+
+const readCookie = (name) => {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : '';
+};
+
+const setCookie = (name, value, days) => {
+  const maxAge = Math.max(1, Number(days || 1)) * 24 * 60 * 60;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; samesite=lax`;
+};
+
+const deleteCookie = (name) => {
+  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+};
 
 export function LoginUsuario() {
   const navigate = useNavigate();
   const [idUsuario, setIdUsuario] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberUserId, setRememberUserId] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorDialog, setErrorDialog] = useState({
@@ -32,6 +51,14 @@ export function LoginUsuario() {
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const rememberedId = readCookie(REMEMBER_ID_COOKIE);
+    if (rememberedId) {
+      setIdUsuario(rememberedId);
+      setRememberUserId(true);
+    }
+  }, []);
 
   const openErrorDialog = (title, message) => {
     setErrorDialog({
@@ -74,6 +101,12 @@ export function LoginUsuario() {
 
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
+
+      if (rememberUserId) {
+        setCookie(REMEMBER_ID_COOKIE, idUsuario.trim(), 30);
+      } else {
+        deleteCookie(REMEMBER_ID_COOKIE);
+      }
 
       toast.success(`Inicio de sesión correcto para ${authUser.nombre}.`);
 
@@ -196,6 +229,11 @@ export function LoginUsuario() {
                   ),
                 }}
                 fullWidth
+              />
+
+              <FormControlLabel
+                control={<Checkbox checked={rememberUserId} onChange={(event) => setRememberUserId(event.target.checked)} color="secondary" />}
+                label="Recordar mi ID de usuario"
               />
 
               <Button
