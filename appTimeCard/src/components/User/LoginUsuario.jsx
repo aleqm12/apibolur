@@ -43,6 +43,7 @@ export function LoginUsuario() {
   const navigate = useNavigate();
   const [idUsuario, setIdUsuario] = useState('');
   const [password, setPassword] = useState('');
+  const [knownUserIds, setKnownUserIds] = useState([]);
   const [rememberUserId, setRememberUserId] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,16 @@ export function LoginUsuario() {
       setIdUsuario(rememberedId);
       setRememberUserId(true);
     }
+
+    UserService.getUsers()
+      .then((response) => {
+        const users = Array.isArray(response?.data) ? response.data : [];
+        const uniqueIds = [...new Set(users.map((userItem) => String(userItem?.id_usuario || '').trim()).filter(Boolean))];
+        setKnownUserIds(uniqueIds);
+      })
+      .catch(() => {
+        setKnownUserIds([]);
+      });
   }, []);
 
   const openErrorDialog = (title, message) => {
@@ -198,7 +209,7 @@ export function LoginUsuario() {
               <TextField
                 label="ID Usuario"
                 value={idUsuario}
-                onChange={(event) => setIdUsuario(event.target.value)}
+                onChange={(event) => setIdUsuario(event.target.value.replace(/\D/g, ''))}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -206,8 +217,24 @@ export function LoginUsuario() {
                     </InputAdornment>
                   ),
                 }}
+                inputProps={{
+                  list: 'known-user-ids',
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*',
+                  maxLength: 20,
+                  spellCheck: false,
+                  autoCorrect: 'off',
+                  autoCapitalize: 'none',
+                }}
+                autoComplete="off"
                 fullWidth
               />
+
+              <datalist id="known-user-ids">
+                {knownUserIds.map((userId) => (
+                  <option key={userId} value={userId} />
+                ))}
+              </datalist>
 
               <TextField
                 label="Contrasena"

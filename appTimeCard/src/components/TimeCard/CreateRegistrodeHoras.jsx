@@ -211,8 +211,10 @@ export function CreateRegistrodeHoras() {
     .slice(0, 2)
     .map((segment) => segment[0].toUpperCase())
     .join('') || 'US';
-  const [periodStart, setPeriodStart] = useState(() => (isEditMode ? periodStartQuery : getTodayIso()));
-  const [periodEnd, setPeriodEnd] = useState(() => (isEditMode ? periodEndQuery : getDefaultPeriodEndIso(getTodayIso())));
+  const [periodStart, setPeriodStart] = useState(() => (isFixedPeriodMode ? periodStartQuery : getTodayIso()));
+  const [periodEnd, setPeriodEnd] = useState(() => (
+    isFixedPeriodMode ? periodEndQuery : getDefaultPeriodEndIso(getTodayIso())
+  ));
   const [projects, setProjects] = useState([]);
   const [filterCliente, setFilterCliente] = useState('');
   const [filterBusqueda, setFilterBusqueda] = useState('');
