@@ -17,6 +17,7 @@ import { CreateProject } from "./components/Project/CreateProject";
 import { CreateUsuario } from "./components/User/CreateUsuario";
 import { LoginUsuario } from "./components/User/LoginUsuario";
 import { LogoutUsuario } from "./components/User/LogoutUsuario";
+import { ChangePasswordUsuario } from "./components/User/ChangePasswordUsuario";
 import { AdminPanel } from "./components/Admin/AdminPanel";
 import { HistorialAprobaciones } from "./components/Admin/HistorialAprobaciones";
 import { ReportesEstadisticas } from "./components/Admin/ReportesEstadisticas";
@@ -104,6 +105,10 @@ const rutas=createBrowserRouter(
         {
           path:'/user/logout',
           element: <LogoutUsuario />
+        },
+        {
+          path:'/user/change-password',
+          element: <ChangePasswordUsuario />
         },
         {
           path:'/admin/panel',

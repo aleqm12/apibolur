@@ -91,4 +91,66 @@ class user
             handleException($e);
         }
     }
+
+    public function resetpassword()
+    {
+        try {
+            $request = new Request();
+            $response = new Response();
+            $inputJSON = $request->getJSON();
+
+            $userM = new UserModel();
+            $result = $userM->resetPassword($inputJSON);
+
+            if (!$result) {
+                $response->status(400)->toJSON([
+                    'status' => 'error',
+                    'message' => 'No fue posible restablecer la contrasena.',
+                ]);
+                return;
+            }
+
+            $response->toJSON([
+                'status' => 'ok',
+                'message' => 'Contrasena restablecida correctamente.',
+            ]);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
+
+    public function changepassword()
+    {
+        try {
+            $request = new Request();
+            $response = new Response();
+            $inputJSON = $request->getJSON();
+
+            $userM = new UserModel();
+            $result = $userM->changeOwnPassword($inputJSON);
+
+            if ($result === null) {
+                $response->status(400)->toJSON([
+                    'status' => 'error',
+                    'message' => 'No fue posible cambiar la contrasena.',
+                ]);
+                return;
+            }
+
+            if ($result === false) {
+                $response->status(401)->toJSON([
+                    'status' => 'error',
+                    'message' => 'Contrasena actual invalida.',
+                ]);
+                return;
+            }
+
+            $response->toJSON([
+                'status' => 'ok',
+                'message' => 'Contrasena actualizada correctamente.',
+            ]);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
 }

@@ -54,6 +54,7 @@ export default function Header() {
   const userItems = [
     { name: "Login", link: "/user/login", login: false },
     { name: "Registrarse", link: "/user/create", login: false },
+    { name: "Cambiar contraseña", link: "/user/change-password", login: true },
     { name: "Logout", link: "/user/logout", login: true },
   ];
   //Lista enlaces menu principal

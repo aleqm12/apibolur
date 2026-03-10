@@ -199,4 +199,73 @@ class UserModel
 			handleException($e);
 		}
 	}
+
+	public function resetPassword($objeto)
+	{
+		try {
+			$targetUserId = isset($objeto->target_user_id) ? addslashes(trim($objeto->target_user_id)) : '';
+			$newPassword = isset($objeto->new_password) ? trim((string) $objeto->new_password) : '';
+			$adminUserId = isset($objeto->admin_user_id) ? addslashes(trim($objeto->admin_user_id)) : '';
+
+			if ($targetUserId === '' || $newPassword === '' || $adminUserId === '') {
+				return false;
+			}
+
+			$adminSql = "SELECT id_usuario, id_rol FROM usuarios WHERE id_usuario='$adminUserId' LIMIT 1";
+			$adminResult = $this->enlace->ExecuteSQL($adminSql);
+			if (empty($adminResult) || (int) $adminResult[0]->id_rol !== 1) {
+				return false;
+			}
+
+			$targetSql = "SELECT id_usuario FROM usuarios WHERE id_usuario='$targetUserId' LIMIT 1";
+			$targetResult = $this->enlace->ExecuteSQL($targetSql);
+			if (empty($targetResult)) {
+				return false;
+			}
+
+			$hashPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+			$hashPassword = addslashes($hashPassword);
+
+			$updateSql = "UPDATE usuarios SET password='$hashPassword' WHERE id_usuario='$targetUserId'";
+			$this->enlace->executeSQL_DML($updateSql);
+
+			return true;
+		} catch (Exception $e) {
+			handleException($e);
+		}
+	}
+
+	public function changeOwnPassword($objeto)
+	{
+		try {
+			$userId = isset($objeto->id_usuario) ? addslashes(trim($objeto->id_usuario)) : '';
+			$currentPassword = isset($objeto->current_password) ? (string) $objeto->current_password : '';
+			$newPassword = isset($objeto->new_password) ? trim((string) $objeto->new_password) : '';
+
+			if ($userId === '' || $currentPassword === '' || $newPassword === '') {
+				return null;
+			}
+
+			$userSql = "SELECT id_usuario, password FROM usuarios WHERE id_usuario='$userId' LIMIT 1";
+			$userResult = $this->enlace->ExecuteSQL($userSql);
+			if (empty($userResult)) {
+				return null;
+			}
+
+			$storedPassword = isset($userResult[0]->password) ? (string) $userResult[0]->password : '';
+			$isPasswordValid = password_verify($currentPassword, $storedPassword) || $currentPassword === $storedPassword;
+			if (!$isPasswordValid) {
+				return false;
+			}
+
+			$hashPassword = password_hash($newPassword, PASSWORD_BCRYPT);
+			$hashPassword = addslashes($hashPassword);
+			$updateSql = "UPDATE usuarios SET password='$hashPassword' WHERE id_usuario='$userId'";
+			$this->enlace->executeSQL_DML($updateSql);
+
+			return true;
+		} catch (Exception $e) {
+			handleException($e);
+		}
+	}
 }

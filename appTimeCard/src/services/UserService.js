@@ -22,6 +22,14 @@ class UserService {
   deleteUser(userId) {
     return axios.delete(`${BASE_URL}/${userId}`);
   }
+
+  resetPassword(payload) {
+    return axios.put(`${BASE_URL}/resetpassword`, JSON.stringify(payload));
+  }
+
+  changePassword(payload) {
+    return axios.put(`${BASE_URL}/changepassword`, JSON.stringify(payload));
+  }
 }
 
 export default new UserService();

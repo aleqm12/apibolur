@@ -19,6 +19,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -72,6 +73,14 @@ export function CreateUsuario() {
     messages: [],
   });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [resetPasswordDialog, setResetPasswordDialog] = useState({
+    open: false,
+    userId: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState({
     nombre: '',
     apellidos: '',
@@ -410,6 +419,86 @@ export function CreateUsuario() {
     }
   };
 
+  const openResetPasswordDialog = (userId) => {
+    setResetPasswordDialog({
+      open: true,
+      userId,
+      password: '',
+      confirmPassword: '',
+    });
+    setShowResetPassword(false);
+  };
+
+  const closeResetPasswordDialog = () => {
+    setResetPasswordDialog({
+      open: false,
+      userId: '',
+      password: '',
+      confirmPassword: '',
+    });
+    setShowResetPassword(false);
+  };
+
+  const handleResetPassword = async () => {
+    const newPassword = (resetPasswordDialog.password || '').trim();
+    const confirmPassword = (resetPasswordDialog.confirmPassword || '').trim();
+
+    if (!newPassword || !confirmPassword) {
+      setErrorDialog({
+        open: true,
+        title: 'Datos incompletos',
+        messages: ['Ingrese y confirme la nueva contraseña.'],
+      });
+      return;
+    }
+
+    const passwordValidationMessage = getPasswordValidationMessage(newPassword);
+    if (passwordValidationMessage) {
+      setErrorDialog({
+        open: true,
+        title: 'Contraseña inválida',
+        messages: [passwordValidationMessage],
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorDialog({
+        open: true,
+        title: 'Contraseñas distintas',
+        messages: ['La contraseña y su confirmación no coinciden.'],
+      });
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      const adminUser = JSON.parse(localStorage.getItem('authUser') || '{}');
+
+      await UserService.resetPassword({
+        target_user_id: resetPasswordDialog.userId,
+        new_password: newPassword,
+        admin_user_id: adminUser?.id_usuario || '',
+      });
+
+      toast.success(`Contraseña actualizada para ${resetPasswordDialog.userId}.`, {
+        duration: 3000,
+        position: 'top-center',
+      });
+
+      closeResetPasswordDialog();
+    } catch (serviceError) {
+      console.error(serviceError);
+      setErrorDialog({
+        open: true,
+        title: 'No se pudo restablecer la contraseña',
+        messages: [serviceError?.response?.data?.message || 'Intente nuevamente.'],
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const handleReviewNameField = async (fieldName, textValue) => {
     const normalizedValue = (textValue || '').trim();
 
@@ -634,6 +723,9 @@ export function CreateUsuario() {
                           <TableCell align="center">
                             <IconButton color="primary" onClick={() => handleEditUser(userItem)}>
                               <EditIcon />
+                            </IconButton>
+                            <IconButton color="secondary" onClick={() => openResetPasswordDialog(userItem.id_usuario)}>
+                              <LockResetIcon />
                             </IconButton>
                             <IconButton color="error" onClick={() => handleDeleteUser(userItem.id_usuario)}>
                               <DeleteIcon />
@@ -890,6 +982,19 @@ export function CreateUsuario() {
                         fullWidth
                         id="passwordConfirm"
                         label={isEditMode ? 'Confirmar nueva contraseña' : 'Confirmar contraseña'}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="Mostrar u ocultar confirmación de contraseña"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                edge="end"
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
                         error={Boolean(errors.passwordConfirm)}
                         helperText={
                           errors.passwordConfirm
@@ -966,6 +1071,67 @@ export function CreateUsuario() {
             <DialogActions sx={{ px: 3, py: 2 }}>
               <Button variant="contained" color="primary" onClick={handleCloseSuccessDialog} autoFocus>
                 Aceptar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog
+            open={resetPasswordDialog.open}
+            onClose={closeResetPasswordDialog}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>Restablecer contraseña</DialogTitle>
+            <DialogContent dividers>
+              <Typography sx={{ mb: 2 }}>
+                Usuario seleccionado: <strong>{resetPasswordDialog.userId}</strong>
+              </Typography>
+              <Grid container spacing={1}>
+                <Grid size={12}>
+                  <TextField
+                    fullWidth
+                    label="Nueva contraseña"
+                    type={showResetPassword ? 'text' : 'password'}
+                    value={resetPasswordDialog.password}
+                    onChange={(event) => setResetPasswordDialog((current) => ({ ...current, password: event.target.value }))}
+                    helperText="Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 signo especial."
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowResetPassword((prev) => !prev)} edge="end" aria-label="Mostrar u ocultar nueva contraseña">
+                            {showResetPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid size={12}>
+                  <TextField
+                    fullWidth
+                    label="Confirmar nueva contraseña"
+                    type={showResetPassword ? 'text' : 'password'}
+                    value={resetPasswordDialog.confirmPassword}
+                    onChange={(event) => setResetPasswordDialog((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowResetPassword((prev) => !prev)} edge="end" aria-label="Mostrar u ocultar confirmación de contraseña">
+                            {showResetPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, py: 2 }}>
+              <Button variant="outlined" onClick={closeResetPasswordDialog}>
+                Cancelar
+              </Button>
+              <Button variant="contained" color="primary" onClick={handleResetPassword} disabled={isResettingPassword}>
+                {isResettingPassword ? 'Guardando...' : 'Restablecer'}
               </Button>
             </DialogActions>
           </Dialog>
