@@ -45,6 +45,11 @@ export function CreateAprobaciones() {
     title: '',
     message: '',
   });
+  const [successDialog, setSuccessDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -247,7 +252,9 @@ export function CreateAprobaciones() {
     setSelectedIds((current) => current.filter((id) => id !== rowId));
   };
 
-  const submitDecision = async (estadoResultante, targetRows, motivoRechazo = '') => {
+  const submitDecision = async (estadoResultante, targetRows, motivoRechazo = '', options = {}) => {
+    const isBulkApproval = Boolean(options?.isBulkApproval);
+
     if (!targetRows || targetRows.length === 0) {
       setErrorDialog({
         open: true,
@@ -279,7 +286,15 @@ export function CreateAprobaciones() {
       const response = await AprobacionesService.createAprobaciones(payload);
       const total = response?.data?.total_aprobaciones || 0;
       if (total > 0) {
-        toast.success(`Se procesaron ${total} registro(s).`);
+        if (estadoResultante === 'Aprobado' && isBulkApproval) {
+          setSuccessDialog({
+            open: true,
+            title: 'Aprobacion masiva completada',
+            message: `Se aprobaron correctamente ${total} registro(s).`,
+          });
+        } else {
+          toast.success(`Se procesaron ${total} registro(s).`);
+        }
       } else {
         toast('No se realizaron cambios.');
       }
@@ -306,7 +321,9 @@ export function CreateAprobaciones() {
   };
 
   const handleApproveSelected = async () => {
-    await submitDecision('Aprobado', selectedRows);
+    await submitDecision('Aprobado', selectedRows, '', {
+      isBulkApproval: selectedRows.length > 1,
+    });
   };
 
   const handleRejectSelected = () => {
@@ -379,6 +396,14 @@ export function CreateAprobaciones() {
 
   const handleCloseErrorDialog = () => {
     setErrorDialog({
+      open: false,
+      title: '',
+      message: '',
+    });
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setSuccessDialog({
       open: false,
       title: '',
       message: '',
@@ -650,6 +675,18 @@ export function CreateAprobaciones() {
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
+            Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={successDialog.open} onClose={handleCloseSuccessDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>{successDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography>{successDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleCloseSuccessDialog} autoFocus>
             Aceptar
           </Button>
         </DialogActions>

@@ -89,6 +89,7 @@ export function CreateUsuario() {
     id_rol: 'Rol',
     nivel: 'Nivel',
     password: 'Contraseña',
+    passwordConfirm: 'Confirmación de contraseña',
   };
 
   const roleOptions = [
@@ -115,6 +116,7 @@ export function CreateUsuario() {
     id_rol: '',
     nivel: '',
     password: '',
+    passwordConfirm: '',
   };
 
   const userSchema = useMemo(
@@ -162,6 +164,31 @@ export function CreateUsuario() {
             const passwordMessage = getPasswordValidationMessage(normalizedPassword);
             if (passwordMessage) {
               return this.createError({ message: passwordMessage });
+            }
+
+            return true;
+          }),
+        passwordConfirm: yup
+          .string()
+          .max(255, 'La confirmación de contraseña debe tener máximo 255 caracteres')
+          .test('password-match', function validatePasswordConfirmation(value) {
+            const normalizedPassword = (this.parent.password || '').trim();
+            const normalizedPasswordConfirm = (value || '').trim();
+
+            if (!isEditMode && normalizedPasswordConfirm === '') {
+              return this.createError({ message: 'La confirmación de contraseña es requerida' });
+            }
+
+            if (isEditMode && normalizedPassword === '') {
+              return true;
+            }
+
+            if (isEditMode && normalizedPassword !== '' && normalizedPasswordConfirm === '') {
+              return this.createError({ message: 'Confirme la nueva contraseña' });
+            }
+
+            if (normalizedPasswordConfirm !== normalizedPassword) {
+              return this.createError({ message: 'Las contraseñas no coinciden' });
             }
 
             return true;
@@ -355,6 +382,7 @@ export function CreateUsuario() {
       id_rol: Number(userItem.id_rol),
       nivel: userItem.nivel,
       password: '',
+      passwordConfirm: '',
     });
     setShowPassword(false);
     setIsFormOpen(true);
@@ -829,6 +857,28 @@ export function CreateUsuario() {
                         }}
                         error={Boolean(errors.password)}
                         helperText={errors.password ? errors.password.message : 'Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número y 1 signo especial.'}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                <Grid size={12}>
+                  <Controller
+                    name="passwordConfirm"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type={showPassword ? 'text' : 'password'}
+                        fullWidth
+                        id="passwordConfirm"
+                        label={isEditMode ? 'Confirmar nueva contraseña' : 'Confirmar contraseña'}
+                        error={Boolean(errors.passwordConfirm)}
+                        helperText={
+                          errors.passwordConfirm
+                            ? errors.passwordConfirm.message
+                            : 'Debe coincidir exactamente con la contraseña ingresada.'
+                        }
                       />
                     )}
                   />
