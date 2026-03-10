@@ -19,6 +19,7 @@ import { LoginUsuario } from "./components/User/LoginUsuario";
 import { LogoutUsuario } from "./components/User/LogoutUsuario";
 import { AdminPanel } from "./components/Admin/AdminPanel";
 import { HistorialAprobaciones } from "./components/Admin/HistorialAprobaciones";
+import { ReportesEstadisticas } from "./components/Admin/ReportesEstadisticas";
 import { CreateRegistrodeHoras } from "./components/TimeCard/CreateRegistrodeHoras";
 import { ActiveTimeSheet } from "./components/TimeCard/ActiveTimeSheet";
 import { HistorialHojasTiempo } from "./components/TimeCard/HistorialHojasTiempo";
@@ -107,6 +108,10 @@ const rutas=createBrowserRouter(
         {
           path:'/admin/panel',
           element: <AdminPanel />
+        },
+        {
+          path:'/admin/reportes',
+          element: <ReportesEstadisticas />
         }
       ]
     }

@@ -110,9 +110,9 @@ export function AdminPanel() {
       id: 'reportes',
       title: 'Reportes y Estadísticas',
       subtitle: 'Análisis operativo y métricas de rendimiento.',
-      color: '#9B2748',
+      color: '#B44D6C',
       icon: <BarChartOutlinedIcon sx={{ fontSize: 34 }} />,
-      disabled: true,
+      to: '/admin/reportes',
     },
   ];
 

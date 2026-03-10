@@ -18,11 +18,12 @@ export function Layout({ children }) {
   const isTimeCardActive = location.pathname.startsWith('/registro-horas/activa');
   const isTimeCardHistory = location.pathname.startsWith('/registro-horas/historial');
   const isApprovalsHistory = location.pathname.startsWith('/admin/aprobaciones/historial');
+  const isAdminReports = location.pathname.startsWith('/admin/reportes');
   const isCreateUser = location.pathname === '/user/create';
   const isLoginPage = location.pathname === '/user/login' || location.pathname === '/user/logout';
   const isAdminPanel = location.pathname === '/admin/panel';
-  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateRegistroHoras && !isCreateAprobaciones && !isTimeCardActive && !isTimeCardHistory && !isApprovalsHistory && !isCreateUser && !isLoginPage && !isAdminPanel;
-  const isFullBleedPage = isHome || isCreateProject || isCreateRegistroHoras || isCreateAprobaciones || isTimeCardActive || isTimeCardHistory || isApprovalsHistory || isCreateUser || isLoginPage || isAdminPanel;
+  const showHeader = location.pathname !== '/' && !isCreateProject && !isCreateRegistroHoras && !isCreateAprobaciones && !isTimeCardActive && !isTimeCardHistory && !isApprovalsHistory && !isAdminReports && !isCreateUser && !isLoginPage && !isAdminPanel;
+  const isFullBleedPage = isHome || isCreateProject || isCreateRegistroHoras || isCreateAprobaciones || isTimeCardActive || isTimeCardHistory || isApprovalsHistory || isAdminReports || isCreateUser || isLoginPage || isAdminPanel;
 
   return ( 
     <> 
