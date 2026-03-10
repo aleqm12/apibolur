@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Grid from '@mui/material/Grid2';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -146,28 +147,80 @@ export function HistorialAprobaciones() {
     setErrorDialog({ open: false, title: '', message: '' });
   };
 
+  const fullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
+
   if (!currentUser) {
     return null;
   }
 
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
-      <Paper elevation={0} sx={{ px: { xs: 2, md: 4 }, py: 2, borderRadius: 0, bgcolor: 'secondary.main', color: 'secondary.contrastText' }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>Historial de Aprobaciones</Typography>
-            <Typography variant="body2">Auditoria de decisiones de aprobacion y rechazo.</Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
-              Volver al panel
-            </Button>
-            <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
-              Cerrar sesión
-            </Button>
-          </Stack>
-        </Stack>
-      </Paper>
+      <Grid container spacing={1}>
+        <Grid
+          size={12}
+          sx={{
+            mb: 2,
+            px: { xs: 2, md: 4 },
+            py: 2,
+            backgroundColor: 'secondary.main',
+            color: 'secondary.contrastText',
+          }}
+        >
+          <Grid container alignItems="center" spacing={2}>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                BÖLUR ENGINEERS
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'secondary.contrastText',
+                  fontSize: { xs: '0.88rem', md: '0.95rem' },
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  opacity: 0.96,
+                }}
+              >
+                Usuario: {fullName || currentUser?.id_usuario || 'Administrador'}
+              </Typography>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.contrastText' }}>
+                Panel de Administración
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: 'secondary.contrastText',
+                  fontSize: { xs: '1rem', md: '1.15rem' },
+                  fontWeight: 700,
+                  letterSpacing: '0.03em',
+                }}
+              >
+                Historial de Aprobaciones
+              </Typography>
+            </Grid>
+
+            <Grid
+              size={{ xs: 12, md: 3 }}
+              sx={{
+                display: 'flex',
+                justifyContent: { xs: 'center', md: 'flex-end' },
+                gap: 1,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
+                Volver al Menú
+              </Button>
+              <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
+                Cerrar Sesión
+              </Button>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
 
       <Box sx={{ px: { xs: 2, md: 3 }, py: 3 }}>
         <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', mb: 2 }}>

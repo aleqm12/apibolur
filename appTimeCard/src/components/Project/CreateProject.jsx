@@ -538,7 +538,16 @@ export function CreateProject() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   BÖLUR ENGINEERS
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'secondary.contrastText' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'secondary.contrastText',
+                    fontSize: { xs: '0.88rem', md: '0.95rem' },
+                    fontWeight: 600,
+                    letterSpacing: '0.02em',
+                    opacity: 0.96,
+                  }}
+                >
                   Usuario: Alejandro Quesada Molina
                 </Typography>
               </Grid>
@@ -547,7 +556,15 @@ export function CreateProject() {
                 <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.contrastText' }}>
                   Panel de Administración
                 </Typography>
-                <Typography variant="subtitle1" sx={{ color: 'secondary.contrastText' }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: 'secondary.contrastText',
+                    fontSize: { xs: '1rem', md: '1.15rem' },
+                    fontWeight: 700,
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   Creación de Proyectos
                 </Typography>
               </Grid>

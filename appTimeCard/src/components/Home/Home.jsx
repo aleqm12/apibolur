@@ -8,6 +8,19 @@ import { Link, useNavigate } from 'react-router-dom';
 export function Home() { 
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const logoBlue = '#63859E';
+  const logoCandidates = [
+    '/bolur-logo-horizontal.png',
+    '/bolur-logo-horizontal.jpg',
+    '/bolur-logo-horizontal.jpeg',
+    '/bolur-logo-horizontal.webp',
+    '/bolur-logo-horizontal.svg',
+    '/logo-bolur-horizontal.png',
+    '/logo-bolur.png',
+    '/bolur-logo.png',
+  ];
+  const [showHomeLogo, setShowHomeLogo] = useState(true);
+  const [homeLogoIndex, setHomeLogoIndex] = useState(0);
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -66,7 +79,7 @@ export function Home() {
           right: 0,
           width: 0,
           height: 0,
-          borderTop: { xs: '220px solid #102A43', md: '320px solid #102A43' },
+          borderTop: { xs: `220px solid ${logoBlue}`, md: `320px solid ${logoBlue}` },
           borderLeft: { xs: '220px solid transparent', md: '320px solid transparent' },
           zIndex: 0,
           pointerEvents: 'none',
@@ -85,41 +98,101 @@ export function Home() {
           pointerEvents: 'none',
         }}
       />
-      <Box sx={{ position: 'relative', zIndex: 1 }}>
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          maxWidth: 460,
+          mx: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+      {showHomeLogo ? (
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 1.8,
+          }}
+        >
+          <Box
+            component="img"
+            src={logoCandidates[homeLogoIndex]}
+            alt="Bolur Engineers"
+            onError={() => {
+              if (homeLogoIndex < logoCandidates.length - 1) {
+                setHomeLogoIndex((prev) => prev + 1);
+                return;
+              }
+
+              setShowHomeLogo(false);
+            }}
+            sx={{
+              width: '100%',
+              maxWidth: { xs: 300, md: 400 },
+              height: 'auto',
+              display: 'block',
+              mixBlendMode: 'multiply',
+            }}
+          />
+        </Box>
+      ) : null}
       <Typography 
         component="h1" 
         variant="h4"
         align="center" 
-        color="secondary.main" 
+        sx={{ color: logoBlue }}
         gutterBottom 
       > 
         Hola, {nombreCompleto || 'Usuario'}
         </Typography> 
-      <Typography variant="h6" align="center" color="secondary.main" sx={{ mb: 2, fontWeight: 600 }}> 
+      <Typography variant="h6" align="center" sx={{ mb: 2, fontWeight: 600, color: logoBlue }}> 
         ¿Qué deseas hacer hoy?
       </Typography> 
     
-      <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">
-        <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ minWidth: 320 }}>
+      <Stack direction="column" spacing={2} justifyContent="center" alignItems="center" sx={{ width: '100%' }}>
+        <Button variant="contained" color="primary" size="large" component={Link} to="/registro-horas/crear/" sx={{ width: '100%', maxWidth: 360 }}>
           Crear una nueva hoja de tiempo
         </Button>
         <Button
           variant="contained"
-          color="secondary"
           size="large"
           component={Link}
           to="/registro-horas/historial"
           sx={{
-            minWidth: 320,
+            width: '100%',
+            maxWidth: 360,
             borderRadius: 1.5,
+            backgroundColor: logoBlue,
+            color: '#FFFFFF',
             '&:hover': {
-              backgroundColor: '#1f4b74',
+              backgroundColor: '#4E6F87',
             },
           }}
         >
           Historial de Hojas de Tiempo
         </Button>
-        <Button variant="outlined" color="secondary" size="large" component={Link} to="/user/logout" sx={{ minWidth: 320 }}>
+        <Button
+          variant="outlined"
+          size="large"
+          component={Link}
+          to="/user/logout"
+          sx={{
+            width: '100%',
+            maxWidth: 360,
+            color: logoBlue,
+            borderColor: logoBlue,
+            '&:hover': {
+              borderColor: '#4E6F87',
+              backgroundColor: 'rgba(99, 133, 158, 0.08)',
+            },
+          }}
+        >
           Cerrar sesión
         </Button>
       </Stack>

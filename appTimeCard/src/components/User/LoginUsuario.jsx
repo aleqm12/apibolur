@@ -65,12 +65,25 @@ const saveIdHistory = (idUsuario) => {
 };
 
 export function LoginUsuario() {
+  const logoBlue = '#63859E';
+  const logoCandidates = [
+    '/bolur-logo-horizontal.png',
+    '/bolur-logo-horizontal.jpg',
+    '/bolur-logo-horizontal.jpeg',
+    '/bolur-logo-horizontal.webp',
+    '/bolur-logo-horizontal.svg',
+    '/logo-bolur-horizontal.png',
+    '/logo-bolur.png',
+    '/bolur-logo.png',
+  ];
   const navigate = useNavigate();
   const [idUsuario, setIdUsuario] = useState('');
   const [idSuggestions, setIdSuggestions] = useState([]);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLogoImage, setShowLogoImage] = useState(true);
+  const [logoIndex, setLogoIndex] = useState(0);
   const [errorDialog, setErrorDialog] = useState({
     open: false,
     title: '',
@@ -182,34 +195,108 @@ export function LoginUsuario() {
           right: 0,
           width: 0,
           height: 0,
-          borderBottom: { xs: '220px solid #102A43', md: '320px solid #102A43' },
+          borderBottom: { xs: `220px solid ${logoBlue}`, md: `320px solid ${logoBlue}` },
           borderLeft: { xs: '220px solid transparent', md: '320px solid transparent' },
           zIndex: 0,
           pointerEvents: 'none',
         }}
       />
 
-      <Stack spacing={4} sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 460 }}>
-        <Box textAlign="center">
+      <Stack
+        spacing={4}
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          maxWidth: 520,
+          alignItems: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            maxWidth: 460,
+            mx: 'auto',
+          }}
+        >
+          {showLogoImage ? (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                px: 0.5,
+                borderRadius: 1,
+                backgroundColor: '#f4f5f7',
+              }}
+            >
+              <Box
+                component="img"
+                src={logoCandidates[logoIndex]}
+                alt="Bolur Engineers"
+                onError={() => {
+                  if (logoIndex < logoCandidates.length - 1) {
+                    setLogoIndex((prev) => prev + 1);
+                    return;
+                  }
+
+                  setShowLogoImage(false);
+                }}
+                sx={{
+                  width: '100%',
+                  maxWidth: { xs: 330, md: 440 },
+                  height: 'auto',
+                  mx: 'auto',
+                  display: 'block',
+                  mixBlendMode: 'multiply',
+                }}
+              />
+            </Box>
+          ) : (
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: { xs: '0.08em', md: '0.18em' },
+                fontSize: { xs: '1.9rem', md: '2.5rem' },
+                color: logoBlue,
+              }}
+            >
+              {'B\u00f6lur Engineers S.A.'}
+            </Typography>
+          )}
           <Typography
-            variant="h3"
+            variant="h6"
             sx={{
-              fontWeight: 800,
-              letterSpacing: { xs: '0.08em', md: '0.18em' },
-              fontSize: { xs: '1.9rem', md: '2.5rem' },
-              color: 'secondary.main',
+              mt: 1.8,
+              color: logoBlue,
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: 700,
+              fontSize: { xs: '0.9rem', md: '1rem' },
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              textAlign: 'center',
+              width: '100%',
+              maxWidth: 480,
+              mx: 'auto',
             }}
           >
-            {'B\u00f6lur Engineers S.A.'}
-          </Typography>
-          <Typography variant="h6" sx={{ mt: 2.6, letterSpacing: '0.14em', color: 'secondary.main' }}>
-            Gestión de Horas - Líneas de Transmisión
+            Control de Horas y Proyectos
           </Typography>
         </Box>
 
         <Paper
           elevation={0}
           sx={{
+            width: '100%',
+            maxWidth: 400,
+            mx: 'auto',
             p: { xs: 3, md: 4 },
             borderRadius: 2,
             border: '1px solid',
@@ -284,7 +371,6 @@ export function LoginUsuario() {
               <Button
                 type="submit"
                 variant="contained"
-                color="secondary"
                 disabled={isSubmitting}
                 sx={{
                   py: 1.2,
@@ -292,8 +378,10 @@ export function LoginUsuario() {
                   letterSpacing: '0.05em',
                   borderRadius: 1.5,
                   textTransform: 'uppercase',
+                  backgroundColor: logoBlue,
+                  color: '#FFFFFF',
                   '&:hover': {
-                    backgroundColor: '#1f4b74',
+                    backgroundColor: '#4E6F87',
                   },
                 }}
               >
@@ -310,7 +398,18 @@ export function LoginUsuario() {
           <Typography>{errorDialog.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" color="secondary" onClick={closeErrorDialog} autoFocus>
+          <Button
+            variant="contained"
+            onClick={closeErrorDialog}
+            autoFocus
+            sx={{
+              backgroundColor: logoBlue,
+              color: '#FFFFFF',
+              '&:hover': {
+                backgroundColor: '#4E6F87',
+              },
+            }}
+          >
             Aceptar
           </Button>
         </DialogActions>

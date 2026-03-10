@@ -8,11 +8,11 @@ export const appTheme = createTheme({
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#102A43',
+      main: '#63859E',
       contrastText: '#FFFFFF',
     },
     primaryLight: {
-      main: '#102A43',
+      main: '#63859E',
       contrastText: '#FFFFFF',
     },
   },

@@ -86,7 +86,7 @@ export function AdminPanel() {
       id: 'proyectos',
       title: 'Proyectos',
       subtitle: 'Control de proyectos, alcance y datos principales.',
-      color: '#d97706',
+      color: '#7A1E3A',
       icon: <FolderOpenOutlinedIcon sx={{ fontSize: 34 }} />,
       to: '/project/crear/',
     },
@@ -110,7 +110,7 @@ export function AdminPanel() {
       id: 'reportes',
       title: 'Reportes y Estadísticas',
       subtitle: 'Análisis operativo y métricas de rendimiento.',
-      color: '#ea580c',
+      color: '#9B2748',
       icon: <BarChartOutlinedIcon sx={{ fontSize: 34 }} />,
       disabled: true,
     },
@@ -133,7 +133,16 @@ export function AdminPanel() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               BÖLUR ENGINEERS
             </Typography>
-            <Typography variant="body2" sx={{ color: 'secondary.contrastText' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'secondary.contrastText',
+                fontSize: { xs: '0.88rem', md: '0.95rem' },
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                opacity: 0.96,
+              }}
+            >
               Usuario: {fullName || currentUser.id_usuario}
             </Typography>
           </Grid>
@@ -142,7 +151,15 @@ export function AdminPanel() {
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.contrastText' }}>
               Panel de Administración
             </Typography>
-            <Typography variant="subtitle1" sx={{ color: 'secondary.contrastText' }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: 'secondary.contrastText',
+                fontSize: { xs: '1rem', md: '1.15rem' },
+                fontWeight: 700,
+                letterSpacing: '0.03em',
+              }}
+            >
               Inicio
             </Typography>
           </Grid>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Grid from '@mui/material/Grid2';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -411,12 +412,6 @@ export function CreateAprobaciones() {
   };
 
   const fullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
-  const userInitials = fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((segment) => segment[0].toUpperCase())
-    .join('') || 'AD';
 
   const headerActionButtonSx = {
     color: 'secondary.contrastText',
@@ -430,54 +425,72 @@ export function CreateAprobaciones() {
 
   return (
     <Box sx={{ minHeight: 'calc(100vh - 6rem)', bgcolor: '#f4f6f8' }}>
-      <Paper
-        elevation={0}
-        sx={{
-          px: { xs: 2, md: 4 },
-          py: 2,
-          borderRadius: 0,
-          bgcolor: 'secondary.main',
-          color: 'secondary.contrastText',
-        }}
-      >
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Box
-              sx={{
-                width: 46,
-                height: 46,
-                borderRadius: 1.5,
-                bgcolor: 'rgba(255, 255, 255, 0.16)',
-                border: '1px solid rgba(255, 255, 255, 0.42)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                color: 'secondary.contrastText',
-              }}
-            >
-              {userInitials}
-            </Box>
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                Panel de Administracion
+      <Grid container spacing={1}>
+        <Grid
+          size={12}
+          sx={{
+            mb: 2,
+            px: { xs: 2, md: 4 },
+            py: 2,
+            backgroundColor: 'secondary.main',
+            color: 'secondary.contrastText',
+          }}
+        >
+          <Grid container alignItems="center" spacing={2}>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                BÖLUR ENGINEERS
               </Typography>
-              <Typography variant="body1">Aprobacion de tiempos</Typography>
-              <Typography variant="body2" sx={{ opacity: 0.88 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'secondary.contrastText',
+                  fontSize: { xs: '0.88rem', md: '0.95rem' },
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  opacity: 0.96,
+                }}
+              >
                 Usuario: {fullName || currentUser?.id_usuario || 'Administrador'}
               </Typography>
-            </Box>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
-              Volver al menu
-            </Button>
-            <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
-              Cerrar sesion
-            </Button>
-          </Stack>
-        </Stack>
-      </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }} sx={{ textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.contrastText' }}>
+                Panel de Administración
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: 'secondary.contrastText',
+                  fontSize: { xs: '1rem', md: '1.15rem' },
+                  fontWeight: 700,
+                  letterSpacing: '0.03em',
+                }}
+              >
+                Aprobación de Tiempos
+              </Typography>
+            </Grid>
+
+            <Grid
+              size={{ xs: 12, md: 3 }}
+              sx={{
+                display: 'flex',
+                justifyContent: { xs: 'center', md: 'flex-end' },
+                gap: 1,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/admin/panel')}>
+                Volver al Menú
+              </Button>
+              <Button variant="outlined" sx={headerActionButtonSx} onClick={handleLogout}>
+                Cerrar Sesión
+              </Button>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Grid>
 
       <Paper elevation={0} sx={{ borderRadius: 0, px: { xs: 2, md: 3 }, py: 2 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }}>
