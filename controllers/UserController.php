@@ -71,13 +71,16 @@ class user
     public function login()
     {
         try {
+            // Obtiene el cuerpo JSON con las credenciales enviadas por el cliente.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
 
+            // Delega la validación y generación del token al modelo.
             $userM = new UserModel();
             $result = $userM->login($inputJSON);
 
+            // Si el modelo no retorna usuario, responde no autorizado.
             if ($result === null) {
                 $response->status(401)->toJSON([
                     'status' => 'error',
@@ -86,6 +89,7 @@ class user
                 return;
             }
 
+            // Login exitoso: retorna el token y la información básica del usuario.
             $response->toJSON($result);
         } catch (Exception $e) {
             handleException($e);

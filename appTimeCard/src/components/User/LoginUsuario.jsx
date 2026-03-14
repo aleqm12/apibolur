@@ -116,8 +116,10 @@ export function LoginUsuario() {
   };
 
   const handleSubmit = async (event) => {
+    // Evita el refresco del formulario para procesar el login desde React.
     event.preventDefault();
 
+    // Verifica que el usuario haya completado ambos campos antes de enviar.
     if (idUsuario.trim() === '' || password.trim() === '') {
       openErrorDialog('Datos incompletos', 'Ingrese su ID de usuario y contraseña.');
       return;
@@ -125,6 +127,7 @@ export function LoginUsuario() {
 
     try {
       setIsSubmitting(true);
+      // Envía las credenciales al servicio que consume el endpoint de autenticación.
       const response = await UserService.login({
         id_usuario: idUsuario.trim(),
         password,
@@ -133,11 +136,13 @@ export function LoginUsuario() {
       const authUser = response?.data?.user;
       const token = response?.data?.token;
 
+      // Si el backend no devolvió usuario o token, se considera un acceso inválido.
       if (!authUser || !token) {
         openErrorDialog('Error de acceso', 'No fue posible iniciar sesión. Intente nuevamente.');
         return;
       }
 
+      // Persiste la sesión en el navegador para reutilizarla entre pantallas.
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
 
@@ -148,6 +153,7 @@ export function LoginUsuario() {
 
       toast.success(`Inicio de sesión correcto para ${authUser.nombre}.`);
 
+      // Redirige según el rol del usuario autenticado.
       if (isAdminUser(authUser)) {
         navigate('/admin/panel');
       } else {

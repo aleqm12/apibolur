@@ -99,10 +99,12 @@ const rutas=createBrowserRouter(
           element: <CreateUsuario />
         },
         {
+          // Ruta pública para mostrar el formulario de autenticación.
           path:'/user/login',
           element: <LoginUsuario />
         },
         {
+          // Ruta encargada de cerrar sesión y limpiar el estado local.
           path:'/user/logout',
           element: <LogoutUsuario />
         },

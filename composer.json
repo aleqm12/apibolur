@@ -1,4 +1,9 @@
 {
+    "_comment": [
+        "Dependencias del modulo de autenticacion y seguridad.",
+        "firebase/php-jwt se usa para generar y validar tokens JWT.",
+        "psr/log se usa para estandarizar el manejo de logs en backend."
+    ],
     "require": {
         "psr/log": "^3.0",
         "firebase/php-jwt": "^6.11"

@@ -82,6 +82,7 @@ class UserModel
 	public function login($objeto)
 	{
 		try {
+			// Normaliza credenciales de entrada y valida campos requeridos.
 			$idUsuario = isset($objeto->id_usuario) ? addslashes(trim($objeto->id_usuario)) : '';
 			$password = isset($objeto->password) ? (string) $objeto->password : '';
 
@@ -89,6 +90,7 @@ class UserModel
 				return null;
 			}
 
+			// Busca al usuario por ID junto con su rol y contraseña almacenada.
 			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel, u.password " .
 				"FROM usuarios u " .
 				"LEFT JOIN roles r ON r.id_rol=u.id_rol " .
@@ -102,12 +104,13 @@ class UserModel
 			$user = $vResultado[0];
 			$storedPassword = isset($user->password) ? (string) $user->password : '';
 
-			// Soporta hashes bcrypt y, solo por compatibilidad, contrasena en texto plano.
+			// Verifica contraseña.
 			$isPasswordValid = password_verify($password, $storedPassword) || $password === $storedPassword;
 			if (!$isPasswordValid) {
 				return null;
 			}
 
+			// Crea el payload del token con emisión, expiración y datos mínimos del usuario.
 			$tokenPayload = [
 				'iat' => time(),
 				'exp' => time() + (60 * 60 * 8),
@@ -117,8 +120,10 @@ class UserModel
 				],
 			];
 
+			// Firma el JWT usando la clave secreta de configuración.
 			$token = JWT::encode($tokenPayload, Config::get('SECRET_KEY'), 'HS256');
 
+			// Retorna token + perfil básico para persistir sesión en frontend.
 			return [
 				'token' => $token,
 				'user' => [

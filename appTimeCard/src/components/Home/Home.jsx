@@ -23,6 +23,7 @@ export function Home() {
   const [homeLogoIndex, setHomeLogoIndex] = useState(0);
 
   useEffect(() => {
+    // Comprueba si existe una sesión guardada antes de mostrar la vista principal.
     const storedAuthUser = localStorage.getItem('authUser');
 
     if (!storedAuthUser) {
@@ -31,9 +32,11 @@ export function Home() {
     }
 
     try {
+      // Recupera los datos del usuario autenticado desde el almacenamiento local.
       const parsedAuthUser = JSON.parse(storedAuthUser);
       setCurrentUser(parsedAuthUser);
     } catch {
+      // Si la sesión está corrupta, la elimina y fuerza un nuevo inicio de sesión.
       localStorage.removeItem('authUser');
       localStorage.removeItem('authToken');
       navigate('/user/login');
