@@ -341,7 +341,7 @@ export function HistorialHojasTiempo() {
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} alignItems={{ xs: 'flex-start', md: 'center' }}>
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>Historial de Hojas de Tiempo</Typography>
-            <Typography variant="body2">Seleccione una hoja para editarla por periodo.</Typography>
+            <Typography variant="body2">Seleccione una hoja para editarla por período.</Typography>
           </Box>
           <Stack direction="row" spacing={1}>
             <Button variant="outlined" sx={headerActionButtonSx} onClick={() => navigate('/registro-horas/crear')}>
@@ -388,15 +388,15 @@ export function HistorialHojasTiempo() {
             <TableHead sx={{ '& .MuiTableCell-root': { fontWeight: 700, bgcolor: '#eef3f8' } }}>
               <TableRow>
                 <TableCell padding="checkbox" />
-                <TableCell>Periodo</TableCell>
+                <TableCell>Período</TableCell>
                 <TableCell align="right">Registros</TableCell>
                 <TableCell align="right">Horas</TableCell>
                 <TableCell align="right">Aprob. (h)</TableCell>
                 <TableCell align="right">Pend. (h)</TableCell>
                 <TableCell align="right">Rech. (h)</TableCell>
-                <TableCell align="center">Estado Envio</TableCell>
+                <TableCell align="center">Estado de envío</TableCell>
                 <TableCell align="center">Estado</TableCell>
-                <TableCell>Retroalimentacion</TableCell>
+                <TableCell>Retroalimentación</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
