@@ -95,6 +95,7 @@ const rutas=createBrowserRouter(
           element: <HistorialAprobaciones />
         },
         {
+          // Ruta principal del modulo de administracion de empleados.
           path:'/user/create',
           element: <CreateUsuario />
         },

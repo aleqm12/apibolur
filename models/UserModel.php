@@ -13,7 +13,7 @@ class UserModel
 	public function all()
 	{
 		try {
-			//Consulta sql
+			// Consulta general de colaboradores con su rol asociado.
 			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel " .
 				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol;";
 
@@ -30,7 +30,7 @@ class UserModel
 	public function get($id)
 	{
 		try {
-			//Consulta sql
+			// Consulta de un colaborador específico por ID.
 			$vSql = "SELECT u.id_usuario, u.nombre, u.apellidos, u.genero, u.id_rol, r.nombre_rol, u.nivel " .
 				"FROM usuarios u LEFT JOIN roles r ON r.id_rol=u.id_rol " .
 				"WHERE u.id_usuario='$id'";
@@ -143,6 +143,7 @@ class UserModel
 	public function create($objeto)
 	{
 		try {
+			// Construye y registra un nuevo colaborador en la tabla usuarios.
 			$idUsuario = addslashes($objeto->id_usuario);
 			$nombre = addslashes($objeto->nombre);
 			$apellidos = addslashes($objeto->apellidos);
@@ -165,6 +166,7 @@ class UserModel
 	public function update($objeto)
 	{
 		try {
+			// Actualiza la información del colaborador existente.
 			$idUsuario = addslashes($objeto->id_usuario);
 			$nombre = addslashes($objeto->nombre);
 			$apellidos = addslashes($objeto->apellidos);
@@ -197,6 +199,7 @@ class UserModel
 	public function delete($id)
 	{
 		try {
+			// Elimina un colaborador de forma permanente por ID.
 			$idUsuario = addslashes($id);
 			$vSql = "DELETE FROM usuarios WHERE id_usuario='$idUsuario'";
 			return $this->enlace->executeSQL_DML($vSql);

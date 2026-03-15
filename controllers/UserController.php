@@ -5,6 +5,7 @@ class user
     public function index()
     {
         try {
+            // Devuelve la lista general de colaboradores.
             $response = new Response();
             $userM = new UserModel();
             $result = $userM->all();
@@ -17,6 +18,7 @@ class user
     public function get($id)
     {
         try {
+            // Devuelve el detalle de un colaborador por su ID.
             $response = new Response();
             $userM = new UserModel();
             $result = $userM->get($id);
@@ -29,6 +31,7 @@ class user
     public function create()
     {
         try {
+            // Recibe datos del colaborador y ejecuta el registro.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
@@ -44,6 +47,7 @@ class user
     public function update()
     {
         try {
+            // Recibe datos editados del colaborador y ejecuta la actualización.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
@@ -59,6 +63,7 @@ class user
     public function delete($id)
     {
         try {
+            // Elimina un colaborador por su identificador.
             $response = new Response();
             $userM = new UserModel();
             $result = $userM->delete($id);

@@ -244,6 +244,7 @@ export function CreateUsuario() {
 
   const onSubmit = async (dataForm) => {
     try {
+      // Evita duplicidad de cédula/ID antes de registrar o actualizar.
       const normalizedId = (dataForm.id_usuario || '').trim();
       const normalizedEditingId = (editingUserId || '').trim();
       const duplicatedUser = users.find((userItem) => {
@@ -276,6 +277,7 @@ export function CreateUsuario() {
 
       let response;
       if (isEditMode) {
+        // Flujo de modificación del colaborador seleccionado.
         response = await UserService.updateUser(
           passwordValue
             ? {
@@ -285,6 +287,7 @@ export function CreateUsuario() {
             : payloadUser
         );
       } else {
+        // Flujo de registro de un nuevo colaborador.
         response = await UserService.createUser({
           ...payloadUser,
           password: dataForm.password,
@@ -370,6 +373,7 @@ export function CreateUsuario() {
   };
 
   const filteredUsers = useMemo(() => {
+    // Aplica búsqueda por ID, nombre o apellidos para consulta rápida.
     return users.filter((userItem) => {
       return (
         userFilter.trim() === '' ||
@@ -381,6 +385,7 @@ export function CreateUsuario() {
   }, [users, userFilter]);
 
   const handleEditUser = (userItem) => {
+    // Carga datos del colaborador en el formulario para edición.
     setIsEditMode(true);
     setEditingUserId(userItem.id_usuario);
     reset({
@@ -398,6 +403,7 @@ export function CreateUsuario() {
   };
 
   const handleDeleteUser = async (userId) => {
+    // Solicita confirmación y elimina el colaborador seleccionado.
     const confirmed = window.confirm('¿Desea eliminar este usuario?');
     if (!confirmed) {
       return;
@@ -546,6 +552,7 @@ export function CreateUsuario() {
   };
 
   useEffect(() => {
+    // Consulta inicial de colaboradores al abrir la vista de gestión.
     UserService.getUsers()
       .then((response) => {
         const apiUsers = Array.isArray(response.data) ? response.data : [];
