@@ -113,6 +113,7 @@ export function ReportesEstadisticas() {
 
     try {
       const parsedAuthUser = JSON.parse(storedAuthUser);
+      // Controla acceso: únicamente perfiles administradores pueden ver reportes.
       const isAdmin = String(parsedAuthUser?.id_rol) === '1' || parsedAuthUser?.nombre_rol === 'Administrador';
 
       if (!isAdmin) {
@@ -136,6 +137,7 @@ export function ReportesEstadisticas() {
     const loadData = async () => {
       try {
         setIsLoading(true);
+        // Carga en paralelo las tres fuentes del tablero: horas, usuarios y proyectos.
         const [rowsResponse, usersResponse, projectsResponse] = await Promise.all([
           RegistroHorasService.getAll(),
           UserService.getUsers(),
@@ -172,6 +174,7 @@ export function ReportesEstadisticas() {
   };
 
   const usersById = useMemo(() => {
+    // Índice rápido por id_usuario para enriquecer métricas y exportación.
     const mapped = new Map();
 
     users.forEach((userItem) => {
@@ -184,6 +187,7 @@ export function ReportesEstadisticas() {
   }, [users]);
 
   const projectOptions = useMemo(() => {
+    // Construye catálogo de proyectos para el filtro (incluye proyectos presentes en filas históricas).
     const mapData = new Map();
 
     projects.forEach((projectItem) => {
@@ -206,6 +210,7 @@ export function ReportesEstadisticas() {
   }, [projects, rows]);
 
   const filteredRows = useMemo(() => {
+    // Aplica filtros por fecha, proyecto y estado de aprobación.
     const fromDate = startDate ? new Date(`${startDate}T00:00:00`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59`) : null;
 
@@ -235,6 +240,7 @@ export function ReportesEstadisticas() {
   }, [rows, startDate, endDate, selectedProject, selectedEstado]);
 
   const stats = useMemo(() => {
+    // Calcula indicadores y series para tarjetas y visualizaciones.
     const uniqueUsers = new Set();
     const projectHours = new Map();
     const genderHours = new Map();
@@ -295,6 +301,7 @@ export function ReportesEstadisticas() {
   const totalGenderHours = Math.max(stats.genderDistribution.reduce((acc, item) => acc + item.value, 0), 1);
 
   const handleExportCsv = () => {
+    // Exporta el resultado filtrado a CSV para respaldo y análisis externo.
     const header = [
       'Fecha',
       'ID Usuario',
@@ -427,6 +434,7 @@ export function ReportesEstadisticas() {
 
       <Box sx={{ px: { xs: 2, md: 3 }, pb: 3 }}>
         <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', mb: 2 }}>
+          {/* Filtros de consulta para segmentar el tablero */}
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }}>
             <TextField
               type="date"
@@ -504,6 +512,7 @@ export function ReportesEstadisticas() {
         ) : (
           <>
             <Grid container spacing={2} sx={{ mb: 2 }}>
+              {/* Tarjetas KPI principales del periodo filtrado */}
               <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
                   <Typography variant="caption" sx={{ color: '#64748b' }}>Horas Totales</Typography>
@@ -533,6 +542,7 @@ export function ReportesEstadisticas() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, lg: 6 }}>
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+                  {/* Visualización comparativa de carga por proyecto */}
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
                     Top 5 Proyectos por Horas
                   </Typography>
@@ -569,6 +579,7 @@ export function ReportesEstadisticas() {
 
               <Grid size={{ xs: 12, lg: 6 }}>
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+                  {/* Visualización de distribución de horas por género */}
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
                     Distribución por Género (Horas)
                   </Typography>
@@ -609,6 +620,7 @@ export function ReportesEstadisticas() {
 
               <Grid size={12}>
                 <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+                  {/* Serie temporal para seguimiento de tendencia semanal */}
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5 }}>
                     Tendencia Semanal de Horas (Últimas 8 semanas)
                   </Typography>

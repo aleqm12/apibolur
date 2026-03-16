@@ -12,6 +12,7 @@ class ProjectModel
     public function all()
     {
         try {
+            // Consulta proyectos con su cliente para seguimiento general.
             $vSql = "SELECT p.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente " .
                 "FROM proyectos p " .
                 "INNER JOIN clientes c ON c.id_cliente = p.id_cliente " .
@@ -20,6 +21,7 @@ class ProjectModel
 
             $subTaskModel = new SubTaskModel();
             if (!empty($vResultado) && is_array($vResultado)) {
+                // Adjunta sub tareas para entregar estructura completa por proyecto.
                 foreach ($vResultado as $projectItem) {
                     $projectItem->sub_tareas = $subTaskModel->getByProject($projectItem->id_proyecto);
                 }
@@ -34,6 +36,7 @@ class ProjectModel
     public function get($idProyecto)
     {
         try {
+            // Consulta un proyecto por ID con sus sub tareas.
             $idProyecto = addslashes($idProyecto);
             $vSql = "SELECT p.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente " .
                 "FROM proyectos p " .
@@ -57,6 +60,7 @@ class ProjectModel
     public function create($objeto)
     {
         try {
+            // Crea proyecto y garantiza que el cliente exista en catalogo.
             $idProyecto = addslashes($objeto->id_proyecto);
             $nombreProyecto = addslashes($objeto->nombre_proyecto);
             $idCliente = addslashes($objeto->id_cliente);
@@ -77,6 +81,7 @@ class ProjectModel
     public function update($objeto)
     {
         try {
+            // Actualiza proyecto y permite cambio de ID conservando referencia original.
             $idProyecto = addslashes($objeto->id_proyecto);
             $idProyectoOriginal = isset($objeto->id_proyecto_original) && !empty($objeto->id_proyecto_original)
                 ? addslashes($objeto->id_proyecto_original)
@@ -104,6 +109,7 @@ class ProjectModel
     public function delete($idProyecto)
     {
         try {
+            // Elimina proyecto por ID.
             $idProyecto = addslashes($idProyecto);
             $vSql = "DELETE FROM proyectos WHERE id_proyecto='$idProyecto';";
             return $this->enlace->executeSQL_DML($vSql);

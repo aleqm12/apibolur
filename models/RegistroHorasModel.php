@@ -12,6 +12,7 @@ class RegistroHorasModel
     public function all()
     {
         try {
+            // Consulta consolidada con proyecto, sub tarea, cliente y estado de aprobacion.
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
                 "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
                 "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
@@ -69,6 +70,7 @@ class RegistroHorasModel
     public function getByUser($idUsuario)
     {
         try {
+            // Consulta registros por colaborador para hoja activa e historial.
             $idUsuario = addslashes($idUsuario);
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
                 "st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
@@ -119,6 +121,7 @@ class RegistroHorasModel
     public function createBatch($objeto)
     {
         try {
+            // Procesa los registros semanales: valida, inserta/actualiza y sincroniza periodo.
             $registros = isset($objeto->registros) && is_array($objeto->registros)
                 ? $objeto->registros
                 : [];
@@ -132,6 +135,7 @@ class RegistroHorasModel
             $registrosKeys = [];
 
             foreach ($registros as $indice => $registro) {
+                // Validaciones mínimas por fila de la hoja semanal.
                 $idUsuario = isset($registro->id_usuario) ? trim($registro->id_usuario) : '';
                 $idSubTarea = isset($registro->id_subtarea) ? trim($registro->id_subtarea) : '';
                 $fecha = isset($registro->fecha) ? trim($registro->fecha) : '';
@@ -158,6 +162,7 @@ class RegistroHorasModel
             }
 
             if (isset($objeto->sync_period) && is_object($objeto->sync_period) && (!empty($registrosValidos) || $allowEmptySync)) {
+                // Sincroniza el periodo eliminando ausentes sin historial de aprobación.
                 $syncUserId = isset($objeto->sync_period->id_usuario) ? trim($objeto->sync_period->id_usuario) : '';
                 $syncFechaInicio = isset($objeto->sync_period->fecha_inicio) ? trim($objeto->sync_period->fecha_inicio) : '';
                 $syncFechaFin = isset($objeto->sync_period->fecha_fin) ? trim($objeto->sync_period->fecha_fin) : '';
@@ -222,6 +227,7 @@ class RegistroHorasModel
     private function createOrReplaceDaily($objeto)
     {
         try {
+            // Inserta o actualiza un registro diario por usuario/sub tarea/fecha.
             $idUsuario = addslashes($objeto->id_usuario);
             $idSubTarea = addslashes($objeto->id_subtarea);
             $fecha = addslashes($objeto->fecha);
@@ -238,6 +244,7 @@ class RegistroHorasModel
             $existingRows = $this->enlace->executeSQL($existingSql);
 
             if (!empty($existingRows)) {
+                // Si existe, actualiza horas/comentario y ajusta estado según cambios.
                 $existing = $existingRows[0];
                 $idRegistro = isset($existing->id_registro) ? (int) $existing->id_registro : 0;
 
@@ -274,6 +281,7 @@ class RegistroHorasModel
 
     private function hasApprovalHistory($idRegistro)
     {
+        // Verifica si un registro ya tiene trazabilidad en aprobaciones.
         $idRegistro = (int) $idRegistro;
         if ($idRegistro <= 0) {
             return false;

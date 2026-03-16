@@ -67,22 +67,27 @@ const rutas=createBrowserRouter(
           element: <UpdateMovie />
         },
         {
+          // Ruta del modulo de administracion de proyectos.
           path:'/project/crear/',
           element: <CreateProject />
         },
         {
+          // Ruta principal del modulo de registro de horas.
           path:'/registro-horas/crear/',
           element: <CreateRegistrodeHoras />
         },
         {
+          // Ruta principal del modulo de registro de horas.
           path:'/registro-horas/crear',
           element: <CreateRegistrodeHoras />
         },
         {
+          // Vista de hoja activa para seguimiento semanal de horas.
           path:'/registro-horas/activa',
           element: <ActiveTimeSheet />
         },
         {
+          // Vista historica de hojas de tiempo y estados de aprobacion.
           path:'/registro-horas/historial',
           element: <HistorialHojasTiempo />
         },
@@ -118,6 +123,7 @@ const rutas=createBrowserRouter(
           element: <AdminPanel />
         },
         {
+          // Ruta del módulo de reportes y gráficos estadísticos (solo administración).
           path:'/admin/reportes',
           element: <ReportesEstadisticas />
         }

@@ -93,6 +93,7 @@ export function HistorialHojasTiempo() {
 
       try {
         setIsLoading(true);
+        // Carga el historial de registros del colaborador autenticado.
         const response = await RegistroHorasService.getByUser(currentUser.id_usuario);
         const registros = Array.isArray(response?.data) ? response.data : [];
 
@@ -119,6 +120,7 @@ export function HistorialHojasTiempo() {
   }, [currentUser]);
 
   const sheets = useMemo(() => {
+    // Consolida registros por semana para vista histórica de hojas de tiempo.
     const filteredRows = allRows.filter((row) => {
       const estadoOk = filterEstado === 'Todos' || row.estado_aprobacion === filterEstado;
       const desdeOk = filterDesde === '' || row.fecha >= filterDesde;

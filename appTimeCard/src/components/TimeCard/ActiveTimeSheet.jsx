@@ -80,6 +80,7 @@ export function ActiveTimeSheet() {
 
       try {
         setIsLoading(true);
+        // Consulta registros del usuario para la semana activa.
         const response = await RegistroHorasService.getByUser(currentUser.id_usuario);
         const registros = Array.isArray(response?.data) ? response.data : [];
 
@@ -108,6 +109,7 @@ export function ActiveTimeSheet() {
   }, [currentUser, currentWeekStart, currentWeekEnd]);
 
   const totalHoras = useMemo(() => rows.reduce((acc, item) => acc + Number(item.horas || 0), 0), [rows]);
+  // Calcula total de horas de la semana activa.
 
   if (!currentUser) {
     return null;

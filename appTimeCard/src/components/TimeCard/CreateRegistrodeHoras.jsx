@@ -266,6 +266,7 @@ export function CreateRegistrodeHoras() {
 
     const loadProjects = async () => {
       try {
+        // Carga proyectos y sub tareas para seleccionar en cada fila de horas.
         const response = await ProjectService.getProjects();
         setProjects(Array.isArray(response.data) ? response.data : []);
       } catch {
@@ -305,6 +306,7 @@ export function CreateRegistrodeHoras() {
 
   const loadRowsByUserAndPeriod = useCallback(async () => {
     try {
+      // Carga registros del colaborador y filtra por semana activa del formulario.
       const response = await RegistroHorasService.getByUser(idUsuario);
       const registros = Array.isArray(response?.data) ? response.data : [];
 
@@ -632,6 +634,7 @@ export function CreateRegistrodeHoras() {
   }, [rows, filterCliente, filterBusqueda, projectMap]);
 
   const parseRowsToPayload = () => {
+    // Valida filas y transforma la hoja visual a payload de backend.
     const validationErrors = [];
 
     const rowsWithHours = rows.filter((row) => sumHours(row.horasPorDia) > 0);
@@ -720,6 +723,7 @@ export function CreateRegistrodeHoras() {
       return;
     }
 
+    // Guarda borrador local sin enviar a revisión.
     if (!draftStorageKey) {
       setErrorDialog({
         open: true,
@@ -797,10 +801,12 @@ export function CreateRegistrodeHoras() {
       return;
     }
 
+    // Envía la hoja semanal al backend para crear/actualizar en lote.
     setIsSaving(true);
     try {
       const response = await RegistroHorasService.createBatch({
         registros,
+        // Define el rango semanal para sincronización segura del periodo.
         sync_period: {
           id_usuario: idUsuario.trim(),
           fecha_inicio: periodStart,
@@ -1080,6 +1086,7 @@ export function CreateRegistrodeHoras() {
         </Stack>
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ py: 2 }}>
+          {/* Acciones principales de edición de la hoja semanal */}
           <Button variant="outlined" onClick={handleAddRow} disabled={isReadOnlyMode}>
             Nueva fila
           </Button>
@@ -1153,6 +1160,7 @@ export function CreateRegistrodeHoras() {
                       {selectedProject?.nombre_cliente || '-'}
                     </TableCell>
                     <TableCell sx={{ minWidth: 170 }}>
+                      {/* Selección de proyecto para asociar horas */}
                       <Select
                         value={row.id_proyecto}
                         onChange={(event) => handleProjectChange(row.id, event.target.value)}
@@ -1170,6 +1178,7 @@ export function CreateRegistrodeHoras() {
                       </Select>
                     </TableCell>
                     <TableCell sx={{ minWidth: 190 }}>
+                      {/* Selección de sub tarea dependiente del proyecto elegido */}
                       <Select
                         value={row.id_subtarea}
                         onChange={(event) => handleSubTaskChange(row.id, event.target.value)}

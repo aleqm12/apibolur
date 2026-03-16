@@ -39,6 +39,7 @@ class SubTaskModel
     public function getByProject($idProyecto)
     {
         try {
+            // Recupera sub tareas de un proyecto para asignacion y seguimiento.
             $idProyecto = addslashes($idProyecto);
             $vSql = "SELECT id_subtarea, id_proyecto, nombre_tarea FROM sub_tareas WHERE id_proyecto='$idProyecto' ORDER BY id_subtarea DESC;";
             return $this->enlace->executeSQL($vSql);
@@ -50,6 +51,7 @@ class SubTaskModel
     public function create($objeto)
     {
         try {
+            // Inserta una sub tarea vinculada al proyecto indicado.
             $idSubTarea = addslashes($objeto->id_subtarea);
             $idProyecto = addslashes($objeto->id_proyecto);
             $nombreTarea = addslashes($objeto->nombre_tarea);
@@ -77,6 +79,7 @@ class SubTaskModel
     public function deleteByProject($idProyecto)
     {
         try {
+            // Elimina todas las sub tareas asociadas al proyecto.
             $idProyecto = addslashes($idProyecto);
             $vSql = "DELETE FROM sub_tareas WHERE id_proyecto='$idProyecto';";
             return $this->enlace->executeSQL_DML($vSql);

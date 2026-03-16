@@ -5,6 +5,7 @@ class registrohoras
     public function index()
     {
         try {
+            // Lista todos los registros de horas para consulta general.
             $response = new Response();
             $registroHorasM = new RegistroHorasModel();
             $result = $registroHorasM->all();
@@ -29,6 +30,7 @@ class registrohoras
     public function byuser($idUsuario)
     {
         try {
+            // Obtiene registros de horas filtrados por colaborador.
             $response = new Response();
             $registroHorasM = new RegistroHorasModel();
             $result = $registroHorasM->getByUser($idUsuario);
@@ -41,6 +43,7 @@ class registrohoras
     public function create()
     {
         try {
+            // Crea un registro puntual de horas.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
@@ -56,6 +59,7 @@ class registrohoras
     public function createbatch()
     {
         try {
+            // Procesa una hoja semanal completa en lote.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
@@ -71,6 +75,7 @@ class registrohoras
     public function delete($id)
     {
         try {
+            // Elimina un registro de horas por ID.
             $response = new Response();
             $registroHorasM = new RegistroHorasModel();
             $result = $registroHorasM->delete($id);

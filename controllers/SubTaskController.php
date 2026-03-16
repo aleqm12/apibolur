@@ -29,6 +29,7 @@ class subtask
     public function byproject($idProyecto)
     {
         try {
+            // Lista sub tareas asociadas a un proyecto especifico.
             $response = new Response();
             $subTaskM = new SubTaskModel();
             $result = $subTaskM->getByProject($idProyecto);
@@ -41,6 +42,7 @@ class subtask
     public function create()
     {
         try {
+            // Crea una sub tarea para asignacion operativa del proyecto.
             $request = new Request();
             $response = new Response();
             $inputJSON = $request->getJSON();
@@ -68,6 +70,7 @@ class subtask
     public function deletebyproject($idProyecto)
     {
         try {
+            // Borra sub tareas por proyecto para resincronizar en edicion.
             $response = new Response();
             $subTaskM = new SubTaskModel();
             $result = $subTaskM->deleteByProject($idProyecto);

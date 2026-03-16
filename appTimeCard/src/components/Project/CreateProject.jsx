@@ -269,6 +269,7 @@ export function CreateProject() {
   };
 
   const loadProjects = async () => {
+    // Carga proyectos con sub tareas para mostrar estado actual del modulo.
     const response = await ProjectService.getProjects();
     const apiProjects = Array.isArray(response.data) ? response.data : [];
     const normalizedProjects = apiProjects.map((projectItem) => ({
@@ -281,6 +282,7 @@ export function CreateProject() {
   const saveProject = async (dataForm, editOperation = isEditMode) => {
     setIsSaving(true);
     try {
+      // Arma payload base del proyecto a guardar.
       const payloadProject = {
         id_proyecto: dataForm.id_proyecto,
         nombre_cliente: dataForm.nombre_cliente,
@@ -289,6 +291,7 @@ export function CreateProject() {
       };
 
       if (editOperation) {
+        // En edición: elimina sub tareas previas y re-sincroniza con las nuevas.
         await SubTaskService.deleteSubTasksByProject(editingProjectId);
 
         await ProjectService.updateProject({
@@ -313,6 +316,7 @@ export function CreateProject() {
             : `Se modificó correctamente el proyecto ${dataForm.nombre_proyecto}.`,
         });
       } else {
+        // En creación: guarda proyecto y luego registra sus sub tareas.
         const projectResponse = await ProjectService.createProject(payloadProject);
         setError(projectResponse.error);
 
@@ -345,6 +349,7 @@ export function CreateProject() {
 
   const onSubmit = async (dataForm) => {
     try {
+      // Valida IDs únicos antes de persistir proyecto y sub tareas.
       if (!validateUniqueIdsBeforeSave(dataForm)) {
         return;
       }
@@ -494,6 +499,7 @@ export function CreateProject() {
   }, []);
 
   const filteredProjects = useMemo(() => {
+    // Aplica filtros de seguimiento por proyecto y cliente.
     return projects.filter((projectItem) => {
       const filterText = projectFilter.trim().toLowerCase();
       const matchesProject =
