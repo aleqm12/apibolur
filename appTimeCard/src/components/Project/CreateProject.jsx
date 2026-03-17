@@ -678,7 +678,7 @@ export function CreateProject() {
                     }}
                     disabled={!projectFilter && !clientFilter}
                   >
-                    Limpiar filtros
+                    Limpiar Filtros
                   </Button>
                 </Grid>
               </Grid>

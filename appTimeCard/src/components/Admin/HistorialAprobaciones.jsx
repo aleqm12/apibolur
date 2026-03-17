@@ -270,7 +270,7 @@ export function HistorialAprobaciones() {
               setFilterFechaDesde('');
               setFilterFechaHasta('');
             }}>
-              Limpiar
+              Limpiar Filtros
             </Button>
           </Stack>
         </Paper>

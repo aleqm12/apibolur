@@ -1081,7 +1081,7 @@ export function CreateRegistrodeHoras() {
             }}
             disabled={!filterCliente && !filterBusqueda}
           >
-            Limpiar filtros
+            Limpiar Filtros
           </Button>
         </Stack>
 

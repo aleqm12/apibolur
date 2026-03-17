@@ -524,7 +524,7 @@ export function CreateAprobaciones() {
             setFilterProyecto('');
             setFilterEstado('Pendiente');
           }}>
-            Limpiar
+            Limpiar Filtros
           </Button>
         </Stack>
       </Paper>

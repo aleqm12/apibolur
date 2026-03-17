@@ -491,7 +491,7 @@ export function ReportesEstadisticas() {
                 setSelectedEstado('Todos');
               }}
             >
-              Limpiar filtros
+              Limpiar Filtros
             </Button>
             <Button
               variant="contained"

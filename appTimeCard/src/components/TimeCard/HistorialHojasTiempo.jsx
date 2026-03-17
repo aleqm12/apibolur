@@ -433,7 +433,7 @@ export function HistorialHojasTiempo() {
               setFilterHasta('');
               setSelectedSheetKey('');
             }}>
-              Limpiar
+              Limpiar Filtros
             </Button>
             <Button variant="outlined" onClick={() => handleOpenSelectedSheet(true)}>
               Ver hoja seleccionada
