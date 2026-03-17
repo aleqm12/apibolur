@@ -10,6 +10,8 @@ import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
 import Tooltip from '@mui/material/Tooltip';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import IconButton from '@mui/material/IconButton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -66,6 +68,7 @@ export function HistorialHojasTiempo() {
   const [selectedSheetKey, setSelectedSheetKey] = useState('');
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, title: '', text: '' });
   const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, sheetKey: '', periodStart: '', periodEnd: '' });
 
   useEffect(() => {
     const storedAuthUser = localStorage.getItem('authUser');
@@ -323,6 +326,63 @@ export function HistorialHojasTiempo() {
     setErrorDialog({ open: false, title: '', message: '' });
   };
 
+  const handleOpenDeleteConfirmDialog = (sheet) => {
+    setDeleteConfirmDialog({
+      open: true,
+      sheetKey: sheet.key,
+      periodStart: sheet.periodStart,
+      periodEnd: sheet.periodEnd,
+    });
+  };
+
+  const handleCloseDeleteConfirmDialog = () => {
+    setDeleteConfirmDialog({ open: false, sheetKey: '', periodStart: '', periodEnd: '' });
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      const { sheetKey } = deleteConfirmDialog;
+      const [periodStart, periodEnd] = sheetKey.split('|');
+
+      // Busca todos los registros de esa semana
+      const registrosAEliminar = allRows.filter(
+        (row) => row.fecha >= periodStart && row.fecha <= periodEnd
+      );
+
+      if (registrosAEliminar.length === 0) {
+        setErrorDialog({
+          open: true,
+          title: 'Error',
+          message: 'No se encontraron registros para eliminar.',
+        });
+        handleCloseDeleteConfirmDialog();
+        return;
+      }
+
+      // Procede a eliminar cada registro
+      for (const registro of registrosAEliminar) {
+        await RegistroHorasService.delete(registro.id_registro);
+      }
+
+      // Actualiza la lista de registros
+      const updatedRows = allRows.filter((row) => !registrosAEliminar.find((r) => r.id_registro === row.id_registro));
+      setAllRows(updatedRows);
+
+      setFeedbackDialog({
+        open: true,
+        title: 'Éxito',
+        text: `Se han eliminado ${registrosAEliminar.length} registro(s) de hojas de tiempo.`,
+      });
+      handleCloseDeleteConfirmDialog();
+    } catch (error) {
+      setErrorDialog({
+        open: true,
+        title: 'Error al eliminar',
+        message: 'No fue posible eliminar los registros. Intente de nuevo.',
+      });
+    }
+  };
+
   const headerActionButtonSx = {
     color: 'secondary.contrastText',
     borderColor: 'secondary.contrastText',
@@ -399,6 +459,7 @@ export function HistorialHojasTiempo() {
                 <TableCell align="center">Estado de envío</TableCell>
                 <TableCell align="center">Estado</TableCell>
                 <TableCell>Retroalimentación</TableCell>
+                <TableCell align="center">Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -463,6 +524,17 @@ export function HistorialHojasTiempo() {
                         '-'
                       )}
                     </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Eliminar hoja de tiempo" arrow>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleOpenDeleteConfirmDialog(sheet)}
+                        >
+                          <DeleteOutlinedIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -491,6 +563,23 @@ export function HistorialHojasTiempo() {
         <DialogActions>
           <Button variant="contained" onClick={handleCloseErrorDialog} autoFocus>
             Aceptar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteConfirmDialog.open} onClose={handleCloseDeleteConfirmDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Eliminar hoja de tiempo</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Está seguro que desea eliminar la hoja de tiempo del período {deleteConfirmDialog.periodStart} a {deleteConfirmDialog.periodEnd}? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={handleCloseDeleteConfirmDialog}>
+            Cancelar
+          </Button>
+          <Button variant="contained" color="error" onClick={handleConfirmDelete}>
+            Eliminar
           </Button>
         </DialogActions>
       </Dialog>

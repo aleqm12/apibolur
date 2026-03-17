@@ -146,19 +146,23 @@ export function LoginUsuario() {
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('authToken', token);
 
+      // Inicializa la fecha de referencia para recordatorio de cambio de contraseña.
+      const passwordTimestampKey = `passwordLastChangedAt:${authUser.id_usuario}`;
+      if (!localStorage.getItem(passwordTimestampKey)) {
+        localStorage.setItem(passwordTimestampKey, new Date().toISOString());
+      }
+
       const normalizedId = idUsuario.trim();
       setCookie(REMEMBER_ID_COOKIE, normalizedId, 30);
       saveIdHistory(normalizedId);
       setIdSuggestions(readIdHistory());
 
+      const nextRoute = isAdminUser(authUser) ? '/admin/panel' : '/';
+
       toast.success(`Inicio de sesión correcto para ${authUser.nombre}.`);
 
       // Redirige según el rol del usuario autenticado.
-      if (isAdminUser(authUser)) {
-        navigate('/admin/panel');
-      } else {
-        navigate('/');
-      }
+      navigate(nextRoute);
     } catch (error) {
       const message = error?.response?.data?.message || 'Credenciales inválidas';
       openErrorDialog('Error de acceso', message);

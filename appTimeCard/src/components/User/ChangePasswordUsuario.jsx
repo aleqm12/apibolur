@@ -106,6 +106,10 @@ export function ChangePasswordUsuario() {
         new_password: newPassword,
       });
 
+      // Actualiza marca temporal de último cambio para el recordatorio de 90 días.
+      localStorage.setItem(`passwordLastChangedAt:${authUser.id_usuario}`, new Date().toISOString());
+      sessionStorage.removeItem(`passwordReminderShown:${authUser.id_usuario}`);
+
       toast.success('Contraseña actualizada correctamente.');
       setCurrentPassword('');
       setNewPassword('');

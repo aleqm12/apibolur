@@ -22,6 +22,11 @@ class RegistroHorasService {
   getByUser(idUsuario) {
     return axios.get(`${BASE_URL}/byuser/${idUsuario}`);
   }
+
+  // Elimina un registro de horas por ID.
+  delete(idRegistro) {
+    return axios.delete(`${BASE_URL}/${idRegistro}`);
+  }
 }
 
 export default new RegistroHorasService();

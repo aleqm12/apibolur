@@ -85,11 +85,26 @@ class user
             $userM = new UserModel();
             $result = $userM->login($inputJSON);
 
-            // Si el modelo no retorna usuario, responde no autorizado.
-            if ($result === null) {
+            if (is_array($result) && isset($result['error_code'])) {
+                if ($result['error_code'] === 'USER_NOT_FOUND') {
+                    $response->status(404)->toJSON([
+                        'status' => 'error',
+                        'message' => 'El usuario no está registrado.',
+                    ]);
+                    return;
+                }
+
+                if ($result['error_code'] === 'MISSING_CREDENTIALS') {
+                    $response->status(400)->toJSON([
+                        'status' => 'error',
+                        'message' => 'Debe ingresar usuario y contraseña.',
+                    ]);
+                    return;
+                }
+
                 $response->status(401)->toJSON([
                     'status' => 'error',
-                    'message' => 'Credenciales invalidas',
+                    'message' => 'Credenciales inválidas',
                 ]);
                 return;
             }

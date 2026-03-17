@@ -87,7 +87,9 @@ class UserModel
 			$password = isset($objeto->password) ? (string) $objeto->password : '';
 
 			if ($idUsuario === '' || $password === '') {
-				return null;
+				return [
+					'error_code' => 'MISSING_CREDENTIALS',
+				];
 			}
 
 			// Busca al usuario por ID junto con su rol y contraseña almacenada.
@@ -98,7 +100,9 @@ class UserModel
 
 			$vResultado = $this->enlace->ExecuteSQL($vSql);
 			if (empty($vResultado)) {
-				return null;
+				return [
+					'error_code' => 'USER_NOT_FOUND',
+				];
 			}
 
 			$user = $vResultado[0];
@@ -107,7 +111,9 @@ class UserModel
 			// Verifica contraseña.
 			$isPasswordValid = password_verify($password, $storedPassword) || $password === $storedPassword;
 			if (!$isPasswordValid) {
-				return null;
+				return [
+					'error_code' => 'INVALID_CREDENTIALS',
+				];
 			}
 
 			// Crea el payload del token con emisión, expiración y datos mínimos del usuario.
