@@ -14,6 +14,10 @@ class AprobacionesService {
   createAprobaciones(payload) {
     return axios.post(BASE_URL, JSON.stringify(payload));
   }
+
+  updateAprobacion(payload) {
+    return axios.put(BASE_URL, JSON.stringify(payload));
+  }
 }
 
 export default new AprobacionesService();

@@ -200,4 +200,45 @@ class AprobacionModel
             handleException($e);
         }
     }
+
+    public function update($objeto)
+    {
+        try {
+            $idAprobacion = isset($objeto->id_aprobacion) ? (int) $objeto->id_aprobacion : 0;
+            if ($idAprobacion <= 0) {
+                throw new Exception('El id_aprobacion es obligatorio.');
+            }
+
+            $aprobacionActual = $this->enlace->executeSQL(
+                "SELECT id_aprobacion, estado_resultante, motivo_rechazo FROM aprobaciones WHERE id_aprobacion = $idAprobacion LIMIT 1;"
+            );
+
+            if (empty($aprobacionActual)) {
+                throw new Exception('No se encontró la aprobación indicada.');
+            }
+
+            $registroActual = $aprobacionActual[0];
+            $estadoResultante = isset($registroActual->estado_resultante) ? trim((string) $registroActual->estado_resultante) : '';
+            $motivoRechazo = isset($objeto->motivo_rechazo) ? trim((string) $objeto->motivo_rechazo) : '';
+
+            if ($estadoResultante === 'Rechazado' && $motivoRechazo === '') {
+                throw new Exception('El motivo de rechazo no puede quedar vacío.');
+            }
+
+            $motivoRechazoSql = $motivoRechazo !== ''
+                ? "'" . addslashes($motivoRechazo) . "'"
+                : 'NULL';
+
+            $updateSql = "UPDATE aprobaciones SET motivo_rechazo = $motivoRechazoSql WHERE id_aprobacion = $idAprobacion;";
+            $this->enlace->executeSQL_DML($updateSql);
+
+            $updatedRows = $this->enlace->executeSQL(
+                "SELECT id_aprobacion, id_registro, id_usuario, estado_resultante, motivo_rechazo, fecha_decision FROM aprobaciones WHERE id_aprobacion = $idAprobacion LIMIT 1;"
+            );
+
+            return !empty($updatedRows) ? $updatedRows[0] : null;
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
 }

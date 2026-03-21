@@ -21,6 +21,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { useNavigate } from 'react-router-dom';
 import AprobacionesService from '../../services/AprobacionesService';
+import GrammarSuggestionService from '../../services/GrammarSuggestionService';
 
 const aprobadoChipSx = {
   bgcolor: '#d8f3dc',
@@ -46,6 +47,15 @@ export function HistorialAprobaciones() {
   const [filterDecisor, setFilterDecisor] = useState('');
   const [filterFechaDesde, setFilterFechaDesde] = useState('');
   const [filterFechaHasta, setFilterFechaHasta] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isCheckingEditText, setIsCheckingEditText] = useState(false);
+  const [editSuggestions, setEditSuggestions] = useState([]);
+  const [editDialog, setEditDialog] = useState({
+    open: false,
+    idAprobacion: null,
+    estadoResultante: '',
+    motivoRechazo: '',
+  });
   const [errorDialog, setErrorDialog] = useState({ open: false, title: '', message: '' });
 
   useEffect(() => {
@@ -145,6 +155,105 @@ export function HistorialAprobaciones() {
 
   const handleCloseErrorDialog = () => {
     setErrorDialog({ open: false, title: '', message: '' });
+  };
+
+  useEffect(() => {
+    if (!editDialog.open) {
+      return;
+    }
+
+    const normalizedText = (editDialog.motivoRechazo || '').trim();
+    if (normalizedText.length < 8) {
+      setEditSuggestions([]);
+      setIsCheckingEditText(false);
+      return;
+    }
+
+    const timerId = setTimeout(async () => {
+      setIsCheckingEditText(true);
+      const suggestions = await GrammarSuggestionService.checkText(normalizedText, 'es');
+      setEditSuggestions(suggestions);
+      setIsCheckingEditText(false);
+    }, 700);
+
+    return () => clearTimeout(timerId);
+  }, [editDialog.open, editDialog.motivoRechazo]);
+
+  const handleOpenEditDialog = (row) => {
+    setEditDialog({
+      open: true,
+      idAprobacion: row.id_aprobacion,
+      estadoResultante: row.estado_resultante || '',
+      motivoRechazo: row.motivo_rechazo || '',
+    });
+    setEditSuggestions([]);
+    setIsCheckingEditText(false);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialog({
+      open: false,
+      idAprobacion: null,
+      estadoResultante: '',
+      motivoRechazo: '',
+    });
+    setEditSuggestions([]);
+    setIsCheckingEditText(false);
+    setIsSavingEdit(false);
+  };
+
+  const handleApplyEditSuggestion = (suggestion) => {
+    setEditDialog((current) => ({
+      ...current,
+      motivoRechazo: GrammarSuggestionService.applySuggestion(current.motivoRechazo, suggestion),
+    }));
+  };
+
+  const handleSaveEditedReason = async () => {
+    const idAprobacion = Number(editDialog.idAprobacion || 0);
+    if (idAprobacion <= 0) {
+      setErrorDialog({
+        open: true,
+        title: 'No se pudo guardar',
+        message: 'No se encontró la aprobación a editar.',
+      });
+      return;
+    }
+
+    const normalizedReason = (editDialog.motivoRechazo || '').trim();
+    if (editDialog.estadoResultante === 'Rechazado' && normalizedReason === '') {
+      setErrorDialog({
+        open: true,
+        title: 'Motivo requerido',
+        message: 'El motivo de rechazo no puede quedar vacío.',
+      });
+      return;
+    }
+
+    try {
+      setIsSavingEdit(true);
+      const response = await AprobacionesService.updateAprobacion({
+        id_aprobacion: idAprobacion,
+        motivo_rechazo: normalizedReason,
+      });
+
+      const updatedReason = response?.data?.motivo_rechazo ?? normalizedReason;
+
+      setRows((currentRows) => currentRows.map((row) => (
+        row.id_aprobacion === idAprobacion
+          ? { ...row, motivo_rechazo: updatedReason }
+          : row
+      )));
+      handleCloseEditDialog();
+    } catch {
+      setErrorDialog({
+        open: true,
+        title: 'No se pudo actualizar',
+        message: 'Ocurrió un error al actualizar el texto del historial.',
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const fullName = `${currentUser?.nombre || ''} ${currentUser?.apellidos || ''}`.trim();
@@ -313,7 +422,16 @@ export function HistorialAprobaciones() {
                         label={(row.estado_resultante || '').toUpperCase()}
                       />
                     </TableCell>
-                    <TableCell>{row.motivo_rechazo || '-'}</TableCell>
+                    <TableCell>
+                      <Stack spacing={1} alignItems="flex-start">
+                        <Typography variant="body2">{row.motivo_rechazo || '-'}</Typography>
+                        {row.estado_resultante === 'Rechazado' ? (
+                          <Button size="small" variant="outlined" onClick={() => handleOpenEditDialog(row)}>
+                            Editar texto
+                          </Button>
+                        ) : null}
+                      </Stack>
+                    </TableCell>
                     <TableCell>{`${row.nombre_decisor || ''} ${row.apellidos_decisor || ''}`.trim() || row.id_usuario_decisor}</TableCell>
                   </TableRow>
                 ))
@@ -322,6 +440,54 @@ export function HistorialAprobaciones() {
           </Table>
         </TableContainer>
       </Box>
+
+      <Dialog open={editDialog.open} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Editar motivo de rechazo</DialogTitle>
+        <DialogContent>
+          <TextField
+            value={editDialog.motivoRechazo}
+            onChange={(event) => setEditDialog((current) => ({ ...current, motivoRechazo: event.target.value }))}
+            multiline
+            minRows={4}
+            fullWidth
+            label="Motivo del rechazo"
+            helperText={
+              isCheckingEditText
+                ? 'Revisando ortografía y redacción...'
+                : editSuggestions.length > 0
+                  ? editSuggestions[0].replacement
+                    ? `Sugerencia: cambiar "${editSuggestions[0].original}" por "${editSuggestions[0].replacement}".`
+                    : `Sugerencia: ${editSuggestions[0].message}`
+                  : ' '
+            }
+            sx={{ mt: 1 }}
+          />
+
+          {editSuggestions.length > 0 ? (
+            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
+              {editSuggestions.map((suggestion, index) => (
+                <Button
+                  key={`${suggestion.offset}-${index}`}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleApplyEditSuggestion(suggestion)}
+                  disabled={!suggestion.replacement}
+                >
+                  {suggestion.replacement ? `Aplicar: ${suggestion.replacement}` : 'Ver sugerencia'}
+                </Button>
+              ))}
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDialog} disabled={isSavingEdit}>
+            Cancelar
+          </Button>
+          <Button variant="contained" onClick={handleSaveEditedReason} disabled={isSavingEdit}>
+            Guardar cambios
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={errorDialog.open} onClose={handleCloseErrorDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Error</DialogTitle>

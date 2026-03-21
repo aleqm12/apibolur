@@ -56,4 +56,19 @@ class aprobaciones
             handleException($e);
         }
     }
+
+    public function update()
+    {
+        try {
+            $request = new Request();
+            $response = new Response();
+            $inputJSON = $request->getJSON();
+
+            $aprobacionM = new AprobacionModel();
+            $result = $aprobacionM->update($inputJSON);
+            $response->toJSON($result);
+        } catch (Exception $e) {
+            handleException($e);
+        }
+    }
 }
