@@ -24,7 +24,7 @@ class UserService {
 
   // Elimina un colaborador por su identificador.
   deleteUser(userId) {
-    return axios.delete(`${BASE_URL}/${userId}`);
+    return axios.delete(`${BASE_URL}/delete/${userId}`);
   }
 
   resetPassword(payload) {

@@ -35,7 +35,6 @@ export function CreateAprobaciones() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [filterPersona, setFilterPersona] = useState('');
   const [filterProyecto, setFilterProyecto] = useState('');
-  const [filterEstado, setFilterEstado] = useState('Pendiente');
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectSuggestions, setRejectSuggestions] = useState([]);
@@ -80,10 +79,9 @@ export function CreateAprobaciones() {
   const loadRows = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params = {};
-      if (filterEstado && filterEstado !== 'Todos') {
-        params.estado = filterEstado;
-      }
+      const params = {
+        estado: 'Pendiente',
+      };
       if (filterPersona) {
         params.id_usuario = filterPersona;
       }
@@ -102,7 +100,7 @@ export function CreateAprobaciones() {
         const allRows = Array.isArray(fallbackResponse?.data) ? fallbackResponse.data : [];
 
         const filtered = allRows.filter((row) => {
-          const estadoOk = !filterEstado || filterEstado === 'Todos' || row.estado_aprobacion === filterEstado;
+          const estadoOk = row.estado_aprobacion === 'Pendiente';
           const personaOk = !filterPersona || String(row.id_usuario) === String(filterPersona);
           const proyectoOk = !filterProyecto || String(row.id_proyecto) === String(filterProyecto);
           return estadoOk && personaOk && proyectoOk;
@@ -129,7 +127,7 @@ export function CreateAprobaciones() {
     } finally {
       setIsLoading(false);
     }
-  }, [filterEstado, filterPersona, filterProyecto]);
+  }, [filterPersona, filterProyecto]);
 
   useEffect(() => {
     loadRows();
@@ -513,16 +511,9 @@ export function CreateAprobaciones() {
               </MenuItem>
             ))}
           </Select>
-          <Select value={filterEstado} onChange={(event) => setFilterEstado(event.target.value)} size="small" sx={{ minWidth: 220 }}>
-            <MenuItem value="Pendiente">Estado: Pendiente</MenuItem>
-            <MenuItem value="Aprobado">Estado: Aprobado</MenuItem>
-            <MenuItem value="Rechazado">Estado: Rechazado</MenuItem>
-            <MenuItem value="Todos">Estado: Todos</MenuItem>
-          </Select>
           <Button variant="outlined" onClick={() => {
             setFilterPersona('');
             setFilterProyecto('');
-            setFilterEstado('Pendiente');
           }}>
             Limpiar Filtros
           </Button>

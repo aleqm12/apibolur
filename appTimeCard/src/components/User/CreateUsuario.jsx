@@ -89,6 +89,11 @@ export function CreateUsuario() {
     nombre: false,
     apellidos: false,
   });
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    open: false,
+    userId: '',
+    userName: '',
+  });
 
   const fieldLabels = {
     id_usuario: 'ID de usuario',
@@ -107,7 +112,7 @@ export function CreateUsuario() {
   ];
 
   const nivelOptions = [
-    'Gerente',
+    'Gerente de Proyectos',
     'Ingeniero Senior',
     'Ingeniero III',
     'Ingeniero II',
@@ -402,25 +407,39 @@ export function CreateUsuario() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteUser = async (userId) => {
-    // Solicita confirmación y elimina el colaborador seleccionado.
-    const confirmed = window.confirm('¿Desea eliminar este usuario?');
-    if (!confirmed) {
-      return;
-    }
+  const handleOpenDeleteDialog = (usuario) => {
+    setDeleteConfirmDialog({
+      open: true,
+      userId: usuario.id_usuario,
+      userName: `${usuario.nombre} ${usuario.apellidos}`.trim(),
+    });
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteConfirmDialog({
+      open: false,
+      userId: '',
+      userName: '',
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const userId = deleteConfirmDialog.userId;
     try {
       await UserService.deleteUser(userId);
       setUsers((prevUsers) => prevUsers.filter((userItem) => userItem.id_usuario !== userId));
+      handleCloseDeleteDialog();
       toast.success('Usuario eliminado con éxito', {
         duration: 3000,
         position: 'top-center',
       });
     } catch (serviceError) {
       console.error(serviceError);
+      const errorMessage = serviceError?.response?.data?.result || 'No se pudo eliminar el usuario.';
       setErrorDialog({
         open: true,
         title: 'No se pudo eliminar el usuario',
-        messages: ['No se pudo eliminar el usuario.'],
+        messages: [errorMessage],
       });
     }
   };
@@ -734,7 +753,7 @@ export function CreateUsuario() {
                             <IconButton color="secondary" onClick={() => openResetPasswordDialog(userItem.id_usuario)}>
                               <LockResetIcon />
                             </IconButton>
-                            <IconButton color="error" onClick={() => handleDeleteUser(userItem.id_usuario)}>
+                            <IconButton color="error" onClick={() => handleOpenDeleteDialog(userItem)}>
                               <DeleteIcon />
                             </IconButton>
                           </TableCell>
@@ -1156,6 +1175,24 @@ export function CreateUsuario() {
             <DialogActions sx={{ px: 3, py: 2 }}>
               <Button variant="contained" color="primary" onClick={handleCloseLogoutDialog} autoFocus>
                 Aceptar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Dialog open={deleteConfirmDialog.open} onClose={handleCloseDeleteDialog} maxWidth="xs" fullWidth>
+            <DialogTitle>Confirmar eliminación de usuario</DialogTitle>
+            <DialogContent>
+              <Typography sx={{ mt: 1 }}>
+                ¿Está seguro que desea eliminar al usuario <strong>{deleteConfirmDialog.userName}</strong>?
+              </Typography>
+              <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                Esta acción no se puede deshacer.
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDeleteDialog}>Cancelar</Button>
+              <Button variant="contained" color="error" onClick={handleConfirmDelete}>
+                Eliminar usuario
               </Button>
             </DialogActions>
           </Dialog>

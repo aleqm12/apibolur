@@ -60,7 +60,7 @@ class user
         }
     }
 
-    public function delete($id)
+    public function delete($id = null)
     {
         try {
             // Elimina un colaborador por su identificador.

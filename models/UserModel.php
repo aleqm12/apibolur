@@ -206,7 +206,30 @@ class UserModel
 	{
 		try {
 			// Elimina un colaborador de forma permanente por ID.
+			// Nota: registro_horas tiene ON DELETE CASCADE, así que sus registros se eliminan automáticamente.
 			$idUsuario = addslashes($id);
+			if ($idUsuario === '') {
+				throw new Exception('El id_usuario es obligatorio.');
+			}
+
+			// Verifica si el usuario existe.
+			$existSql = "SELECT id_usuario FROM usuarios WHERE id_usuario='$idUsuario' LIMIT 1;";
+			$existResult = $this->enlace->executeSQL($existSql);
+			if (empty($existResult)) {
+				throw new Exception('El usuario indicado no existe.');
+			}
+
+			// Nota: Solo bloquea si el usuario tiene decisiones de aprobacion activas.
+			// Los registros de horas se eliminarán en cascade según definición de FK en BD.
+			$hasAprobacionesSql = "SELECT COUNT(*) AS total FROM aprobaciones WHERE id_usuario='$idUsuario';";
+			$hasAprobaciones = $this->enlace->executeSQL($hasAprobacionesSql);
+			if (!empty($hasAprobaciones)) {
+				$total = isset($hasAprobaciones[0]->total) ? (int) $hasAprobaciones[0]->total : 0;
+				if ($total > 0) {
+					throw new Exception('No se puede eliminar un usuario que ha tomado decisiones de aprobacion. Contacte al administrador.');
+				}
+			}
+
 			$vSql = "DELETE FROM usuarios WHERE id_usuario='$idUsuario'";
 			return $this->enlace->executeSQL_DML($vSql);
 		} catch (Exception $e) {
