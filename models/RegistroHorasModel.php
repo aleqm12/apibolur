@@ -303,6 +303,27 @@ class RegistroHorasModel
     {
         try {
             $idRegistro = (int) $idRegistro;
+
+            if ($idRegistro <= 0) {
+                throw new Exception('El id_registro es obligatorio.');
+            }
+
+            $existingRows = $this->enlace->executeSQL(
+                "SELECT id_registro, estado_aprobacion FROM registro_horas WHERE id_registro = $idRegistro LIMIT 1;"
+            );
+
+            if (empty($existingRows)) {
+                throw new Exception('El registro indicado no existe.');
+            }
+
+            $estadoAprobacion = isset($existingRows[0]->estado_aprobacion)
+                ? trim((string) $existingRows[0]->estado_aprobacion)
+                : 'Pendiente';
+
+            if ($estadoAprobacion !== 'Pendiente' || $this->hasApprovalHistory($idRegistro)) {
+                throw new Exception('No se puede eliminar un registro que ya tiene aprobacion o rechazo.');
+            }
+
             $vSql = "DELETE FROM registro_horas WHERE id_registro = $idRegistro;";
             return $this->enlace->executeSQL_DML($vSql);
         } catch (Exception $e) {

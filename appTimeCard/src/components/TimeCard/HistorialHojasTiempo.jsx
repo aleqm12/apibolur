@@ -343,6 +343,30 @@ export function HistorialHojasTiempo() {
     try {
       const { sheetKey } = deleteConfirmDialog;
       const [periodStart, periodEnd] = sheetKey.split('|');
+      const sheetToDelete = sheets.find((sheet) => sheet.key === sheetKey);
+
+      if (!sheetToDelete) {
+        setErrorDialog({
+          open: true,
+          title: 'Hoja no disponible',
+          message: 'La hoja seleccionada ya no está disponible.',
+        });
+        handleCloseDeleteConfirmDialog();
+        return;
+      }
+
+      if (sheetToDelete.source === 'draft') {
+        const draftStorageKey = `${DRAFT_STORAGE_PREFIX}:${currentUser?.id_usuario}:${periodStart}:${periodEnd}`;
+        localStorage.removeItem(draftStorageKey);
+
+        setFeedbackDialog({
+          open: true,
+          title: 'Éxito',
+          text: 'Se eliminó el borrador de la hoja de tiempo.',
+        });
+        handleCloseDeleteConfirmDialog();
+        return;
+      }
 
       // Busca todos los registros de esa semana
       const registrosAEliminar = allRows.filter(
@@ -354,6 +378,21 @@ export function HistorialHojasTiempo() {
           open: true,
           title: 'Error',
           message: 'No se encontraron registros para eliminar.',
+        });
+        handleCloseDeleteConfirmDialog();
+        return;
+      }
+
+      const existeDecision = registrosAEliminar.some((row) => {
+        const estado = row.estado_aprobacion || 'Pendiente';
+        return estado !== 'Pendiente';
+      });
+
+      if (existeDecision) {
+        setErrorDialog({
+          open: true,
+          title: 'No se puede eliminar',
+          message: 'Esta hoja ya tiene registros aprobados o rechazados. Solo se pueden eliminar hojas pendientes.',
         });
         handleCloseDeleteConfirmDialog();
         return;
@@ -375,10 +414,11 @@ export function HistorialHojasTiempo() {
       });
       handleCloseDeleteConfirmDialog();
     } catch (error) {
+      const backendMessage = error?.response?.data?.result || '';
       setErrorDialog({
         open: true,
         title: 'Error al eliminar',
-        message: 'No fue posible eliminar los registros. Intente de nuevo.',
+        message: backendMessage || 'No fue posible eliminar los registros. Intente de nuevo.',
       });
     }
   };
@@ -525,14 +565,24 @@ export function HistorialHojasTiempo() {
                       )}
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Eliminar hoja de tiempo" arrow>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleOpenDeleteConfirmDialog(sheet)}
-                        >
-                          <DeleteOutlinedIcon />
-                        </IconButton>
+                      <Tooltip
+                        title={
+                          sheet.source === 'draft' || sheet.estadoHoja === 'Pendiente'
+                            ? 'Eliminar hoja de tiempo'
+                            : 'Solo se pueden eliminar hojas pendientes o borradores'
+                        }
+                        arrow
+                      >
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleOpenDeleteConfirmDialog(sheet)}
+                            disabled={sheet.source !== 'draft' && sheet.estadoHoja !== 'Pendiente'}
+                          >
+                            <DeleteOutlinedIcon />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
