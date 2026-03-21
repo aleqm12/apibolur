@@ -32,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ProjectService from '../../services/ProjectService';
 import SubTaskService from '../../services/SubTaskService';
+import GrammarSuggestionService from '../../services/GrammarSuggestionService';
 
 export function CreateProject() {
   const navigate = useNavigate();
@@ -64,6 +65,16 @@ export function CreateProject() {
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState({
+    nombre_cliente: '',
+    nombre_proyecto: '',
+    nombre_tarea: {},
+  });
+  const [checkingSuggestions, setCheckingSuggestions] = useState({
+    nombre_cliente: false,
+    nombre_proyecto: false,
+    nombre_tarea: {},
+  });
 
   const fieldLabels = {
     id_proyecto: 'ID del proyecto',
@@ -125,6 +136,7 @@ export function CreateProject() {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues,
@@ -148,6 +160,78 @@ export function CreateProject() {
       return;
     }
     remove(index);
+  };
+
+  const handleReviewTextField = async (fieldName, textValue, taskIndex = null) => {
+    const normalizedValue = (textValue || '').trim();
+
+    if (normalizedValue.length < 3) {
+      if (taskIndex !== null) {
+        setSuggestions((current) => ({
+          ...current,
+          nombre_tarea: { ...current.nombre_tarea, [taskIndex]: '' },
+        }));
+        setCheckingSuggestions((current) => ({
+          ...current,
+          nombre_tarea: { ...current.nombre_tarea, [taskIndex]: false },
+        }));
+      } else {
+        setSuggestions((current) => ({ ...current, [fieldName]: '' }));
+        setCheckingSuggestions((current) => ({ ...current, [fieldName]: false }));
+      }
+      return;
+    }
+
+    if (taskIndex !== null) {
+      setCheckingSuggestions((current) => ({
+        ...current,
+        nombre_tarea: { ...current.nombre_tarea, [taskIndex]: true },
+      }));
+    } else {
+      setCheckingSuggestions((current) => ({ ...current, [fieldName]: true }));
+    }
+
+    const textSuggestions = await GrammarSuggestionService.checkText(normalizedValue, 'es');
+    const firstSuggestion = textSuggestions.find((item) => item.replacement);
+
+    if (taskIndex !== null) {
+      setSuggestions((current) => ({
+        ...current,
+        nombre_tarea: { ...current.nombre_tarea, [taskIndex]: firstSuggestion?.replacement || '' },
+      }));
+      setCheckingSuggestions((current) => ({
+        ...current,
+        nombre_tarea: { ...current.nombre_tarea, [taskIndex]: false },
+      }));
+    } else {
+      setSuggestions((current) => ({ ...current, [fieldName]: firstSuggestion?.replacement || '' }));
+      setCheckingSuggestions((current) => ({ ...current, [fieldName]: false }));
+    }
+  };
+
+  const applySuggestion = (fieldName, taskIndex = null) => {
+    const suggestedValue = taskIndex !== null
+      ? (suggestions.nombre_tarea[taskIndex] || '').trim()
+      : (suggestions[fieldName] || '').trim();
+
+    if (!suggestedValue) {
+      return;
+    }
+
+    if (taskIndex !== null) {
+      setValue(`sub_tareas.${taskIndex}.nombre_tarea`, suggestedValue, { shouldDirty: true, shouldValidate: true });
+    } else {
+      setValue(fieldName, suggestedValue, { shouldDirty: true, shouldValidate: true });
+    }
+
+    if (taskIndex !== null) {
+      setSuggestions((current) => ({
+        ...current,
+        nombre_tarea: { ...current.nombre_tarea, [taskIndex]: '' },
+      }));
+    } else {
+      setSuggestions((current) => ({ ...current, [fieldName]: '' }));
+    }
   };
 
   const collectMissingFields = (formErrors, prefix = '') => {
@@ -780,13 +864,33 @@ export function CreateProject() {
                 name="nombre_cliente"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    id="nombre_cliente"
-                    label="Nombre del Cliente"
-                    error={Boolean(errors.nombre_cliente)}
-                    helperText={errors.nombre_cliente ? errors.nombre_cliente.message : ' '}
-                  />
+                  <>
+                    <TextField
+                      {...field}
+                      fullWidth
+                      id="nombre_cliente"
+                      label="Nombre del Cliente"
+                      error={Boolean(errors.nombre_cliente)}
+                      onBlur={(event) => {
+                        field.onBlur();
+                        handleReviewTextField('nombre_cliente', event.target.value);
+                      }}
+                      helperText={
+                        errors.nombre_cliente
+                          ? errors.nombre_cliente.message
+                          : checkingSuggestions.nombre_cliente
+                            ? 'Revisando ortografía...'
+                            : suggestions.nombre_cliente
+                              ? `Sugerencia: ${suggestions.nombre_cliente}`
+                              : ' '
+                      }
+                    />
+                    {suggestions.nombre_cliente ? (
+                      <Button size="small" variant="text" onClick={() => applySuggestion('nombre_cliente')} sx={{ mt: 0.5 }}>
+                        Aplicar sugerencia
+                      </Button>
+                    ) : null}
+                  </>
                 )}
               />
             </FormControl>
@@ -816,13 +920,33 @@ export function CreateProject() {
                 name="nombre_proyecto"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    id="nombre_proyecto"
-                    label="Nombre del Proyecto"
-                    error={Boolean(errors.nombre_proyecto)}
-                    helperText={errors.nombre_proyecto ? errors.nombre_proyecto.message : ' '}
-                  />
+                  <>
+                    <TextField
+                      {...field}
+                      fullWidth
+                      id="nombre_proyecto"
+                      label="Nombre del Proyecto"
+                      error={Boolean(errors.nombre_proyecto)}
+                      onBlur={(event) => {
+                        field.onBlur();
+                        handleReviewTextField('nombre_proyecto', event.target.value);
+                      }}
+                      helperText={
+                        errors.nombre_proyecto
+                          ? errors.nombre_proyecto.message
+                          : checkingSuggestions.nombre_proyecto
+                            ? 'Revisando ortografía...'
+                            : suggestions.nombre_proyecto
+                              ? `Sugerencia: ${suggestions.nombre_proyecto}`
+                              : ' '
+                      }
+                    />
+                    {suggestions.nombre_proyecto ? (
+                      <Button size="small" variant="text" onClick={() => applySuggestion('nombre_proyecto')} sx={{ mt: 0.5 }}>
+                        Aplicar sugerencia
+                      </Button>
+                    ) : null}
+                  </>
                 )}
               />
             </FormControl>
@@ -860,13 +984,38 @@ export function CreateProject() {
                     name={`sub_tareas.${index}.nombre_tarea`}
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        id={`nombre_tarea_${index}`}
-                        label={`Nombre Sub tarea #${index + 1}`}
-                        error={Boolean(errors.sub_tareas?.[index]?.nombre_tarea)}
-                        helperText={errors.sub_tareas?.[index]?.nombre_tarea?.message || ' '}
-                      />
+                      <>
+                        <TextField
+                          {...field}
+                          fullWidth
+                          id={`nombre_tarea_${index}`}
+                          label={`Nombre Sub tarea #${index + 1}`}
+                          error={Boolean(errors.sub_tareas?.[index]?.nombre_tarea)}
+                          onBlur={(event) => {
+                            field.onBlur();
+                            handleReviewTextField('nombre_tarea', event.target.value, index);
+                          }}
+                          helperText={
+                            errors.sub_tareas?.[index]?.nombre_tarea?.message
+                              ? errors.sub_tareas?.[index]?.nombre_tarea?.message
+                              : checkingSuggestions.nombre_tarea?.[index]
+                                ? 'Revisando ortografía...'
+                                : suggestions.nombre_tarea?.[index]
+                                  ? `Sugerencia: ${suggestions.nombre_tarea[index]}`
+                                  : ' '
+                          }
+                        />
+                        {suggestions.nombre_tarea?.[index] ? (
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => applySuggestion('nombre_tarea', index)}
+                            sx={{ mt: 0.5 }}
+                          >
+                            Aplicar sugerencia
+                          </Button>
+                        ) : null}
+                      </>
                     )}
                   />
                 </FormControl>
