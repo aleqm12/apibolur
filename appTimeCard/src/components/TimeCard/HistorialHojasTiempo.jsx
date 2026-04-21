@@ -24,7 +24,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import RegistroHorasService from '../../services/RegistroHorasService';
 
 const DRAFT_STORAGE_PREFIX = 'timeSheetDraft';
@@ -59,6 +59,7 @@ const rechazadoChipSx = {
 
 export function HistorialHojasTiempo() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [allRows, setAllRows] = useState([]);
@@ -120,7 +121,10 @@ export function HistorialHojasTiempo() {
     };
 
     loadHistory();
-  }, [currentUser]);
+  }, [currentUser, location.state]);
+
+  const currentWeekStart = useMemo(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'), []);
+  const currentWeekEnd = useMemo(() => format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'), []);
 
   const sheets = useMemo(() => {
     // Consolida registros por semana para vista histórica de hojas de tiempo.
@@ -474,6 +478,31 @@ export function HistorialHojasTiempo() {
               setSelectedSheetKey('');
             }}>
               Limpiar Filtros
+            </Button>
+            <Button variant="outlined" onClick={async () => {
+              if (!currentUser?.id_usuario) return;
+              try {
+                setIsLoading(true);
+                const response = await RegistroHorasService.getByUser(currentUser.id_usuario);
+                const registros = Array.isArray(response?.data) ? response.data : [];
+                const orderedRows = [...registros].sort((a, b) => {
+                  if (a.fecha === b.fecha) {
+                    return Number(b.id_registro) - Number(a.id_registro);
+                  }
+                  return a.fecha < b.fecha ? 1 : -1;
+                });
+                setAllRows(orderedRows);
+              } catch {
+                setErrorDialog({
+                  open: true,
+                  title: 'Error al cargar historial',
+                  message: 'No fue posible cargar el historial de hojas de tiempo.',
+                });
+              } finally {
+                setIsLoading(false);
+              }
+            }}>
+              Refrescar
             </Button>
             <Button variant="outlined" onClick={() => handleOpenSelectedSheet(true)}>
               Ver hoja seleccionada

@@ -1367,8 +1367,11 @@ export function CreateRegistrodeHoras() {
           <Typography>{successDialog.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeSuccessDialog} variant="contained" autoFocus>
+          <Button onClick={closeSuccessDialog} variant="outlined">
             Aceptar
+          </Button>
+          <Button onClick={() => navigate('/registro-horas/historial', { state: { refresh: true } })} variant="contained" autoFocus>
+            Ver historial
           </Button>
         </DialogActions>
       </Dialog>
