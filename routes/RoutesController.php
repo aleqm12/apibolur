@@ -161,7 +161,7 @@ class RoutesController
                                         $response->$action($param1);
                                     } elseif ($param1) {
                                         $response->delete($param1);
-                                    } elseif ($action) {
+                                    } elseif ($action && !is_numeric($action)) {
                                         if (method_exists($controller, $action)) {
                                             $response->$action();
                                         } else {
@@ -171,6 +171,8 @@ class RoutesController
                                             );
                                             echo json_encode($json, http_response_code($json["status"]));
                                         }
+                                    } elseif ($action && is_numeric($action)) {
+                                        $response->delete($action);
                                     } else {
                                         $response->delete();
                                     }

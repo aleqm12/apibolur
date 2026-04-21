@@ -556,12 +556,14 @@ export function CreateAprobaciones() {
                   const isSelected = selectedIds.includes(row.id_registro);
                   const rowProjectColor = projectColorMap[row.id_proyecto || 'SIN-PROYECTO'] || '#7A1E3A';
                   const estadoRow = row.estado_aprobacion || 'Pendiente';
+                  const esReevaluado = row.numero_revisiones > 0;
                   return (
                     <TableRow
                       key={row.id_registro}
                       hover
                       sx={{
                         borderLeft: `4px solid ${rowProjectColor}`,
+                        backgroundColor: esReevaluado ? 'rgba(33, 150, 243, 0.06)' : 'transparent',
                       }}
                     >
                       <TableCell padding="checkbox">

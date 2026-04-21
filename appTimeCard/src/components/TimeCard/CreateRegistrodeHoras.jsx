@@ -21,6 +21,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Tooltip from '@mui/material/Tooltip';
 import toast from 'react-hot-toast';
 import { addDays, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -332,6 +333,7 @@ export function CreateRegistrodeHoras() {
             ...buildRowFromRegistro(weekDays, registro, projectIdFromSubTaskMap),
             estadoSet: new Set([registro.estado_aprobacion || 'Pendiente']),
             rechazoFeedback: registro.motivo_rechazo_admin ? [registro.motivo_rechazo_admin] : [],
+            rechazoFeedbackPorDia: registro.motivo_rechazo_admin ? { [registro.fecha]: registro.motivo_rechazo_admin } : {},
           };
         } else {
           accumulator[groupKey].horasPorDia[registro.fecha] = Number(registro.horas);
@@ -340,6 +342,7 @@ export function CreateRegistrodeHoras() {
           accumulator[groupKey].estadoSet.add(registro.estado_aprobacion || 'Pendiente');
           if (registro.motivo_rechazo_admin) {
             accumulator[groupKey].rechazoFeedback.push(registro.motivo_rechazo_admin);
+            accumulator[groupKey].rechazoFeedbackPorDia[registro.fecha] = registro.motivo_rechazo_admin;
           }
         }
 
@@ -1230,44 +1233,57 @@ export function CreateRegistrodeHoras() {
                     </TableCell>
                     <TableCell sx={{ minWidth: 150 }}>
                       <Stack spacing={0.5}>
-                        <Chip
-                          label={estadoRow.toUpperCase()}
-                          sx={estadoRow === 'Aprobado' ? aprobadoChipSx : estadoRow === 'Rechazado' ? rechazadoChipSx : pendienteChipSx}
-                          size="small"
-                        />
+                        <Tooltip 
+                          title={estadoRow === 'Rechazado' && row.rechazoFeedbackText ? row.rechazoFeedbackText : ''} 
+                          arrow
+                        >
+                          <Chip
+                            label={estadoRow.toUpperCase()}
+                            sx={estadoRow === 'Aprobado' ? aprobadoChipSx : estadoRow === 'Rechazado' ? rechazadoChipSx : pendienteChipSx}
+                            size="small"
+                          />
+                        </Tooltip>
                       </Stack>
                     </TableCell>
                     {weekDays.map((day) => (
                       <TableCell key={day.iso} align="center">
                         {(() => {
                           const estadoDia = resolveCellEstado(row, day.iso);
-                          const stateBgColor = estadoDia === 'Aprobado'
-                            ? '#e8f5e9'
-                            : estadoDia === 'Rechazado'
-                              ? '#ffebee'
-                              : estadoDia === 'Pendiente'
-                                ? '#fffde7'
-                                : 'transparent';
+                          const esReevaluado = row.numero_revisiones > 1;
+                          const stateBgColor = esReevaluado && estadoDia === 'Rechazado'
+                            ? '#fff3cd'
+                            : estadoDia === 'Aprobado'
+                              ? '#e8f5e9'
+                              : estadoDia === 'Rechazado'
+                                ? '#ffebee'
+                                : estadoDia === 'Pendiente'
+                                  ? '#fffde7'
+                                  : 'transparent';
 
                           return (
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={row.horasPorDia[day.iso]}
-                          InputProps={{
-                            endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
-                          }}
-                          inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.5 }}
-                          onChange={(event) => handleHourChange(row.id, day.iso, event.target.value)}
-                          sx={{
-                            width: 108,
-                            '& .MuiInputBase-root': {
-                              backgroundColor: stateBgColor,
-                            },
-                          }}
-                          title={estadoDia ? `Estado: ${estadoDia}` : ''}
-                          disabled={isReadOnlyMode}
-                        />
+                        <Tooltip 
+                          title={estadoDia === 'Rechazado' && row.rechazoFeedbackPorDia?.[day.iso] ? row.rechazoFeedbackPorDia[day.iso] : ''} 
+                          arrow
+                        >
+                          <TextField
+                            type="number"
+                            size="small"
+                            value={row.horasPorDia[day.iso]}
+                            InputProps={{
+                              endAdornment: <InputAdornment position="end">hrs</InputAdornment>,
+                            }}
+                            inputProps={{ min: 0, max: HORAS_MAXIMAS_DIA, step: 0.5 }}
+                            onChange={(event) => handleHourChange(row.id, day.iso, event.target.value)}
+                            sx={{
+                              width: 108,
+                              '& .MuiInputBase-root': {
+                                backgroundColor: stateBgColor,
+                              },
+                            }}
+                            title={estadoDia ? `Estado: ${estadoDia}` : ''}
+                            disabled={isReadOnlyMode || estadoDia === 'Aprobado'}
+                          />
+                        </Tooltip>
                           );
                         })()}
                       </TableCell>

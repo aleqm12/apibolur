@@ -41,7 +41,8 @@ class RegistroHorasModel
             $idRegistro = (int) $idRegistro;
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
                 "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
-                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
+                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin, " .
+                "(SELECT COUNT(*) FROM aprobaciones WHERE id_registro = rh.id_registro) AS numero_revisiones " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
@@ -74,7 +75,8 @@ class RegistroHorasModel
             $idUsuario = addslashes($idUsuario);
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, rh.fecha_creacion, " .
                 "st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, p.id_cliente, c.nombre_cliente, " .
-                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin " .
+                "ap.motivo_rechazo AS motivo_rechazo_admin, ap.fecha_decision AS fecha_decision_admin, " .
+                "(SELECT COUNT(*) FROM aprobaciones WHERE id_registro = rh.id_registro) AS numero_revisiones " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .

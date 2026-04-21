@@ -39,7 +39,8 @@ class AprobacionModel
             }
 
             $vSql = "SELECT rh.id_registro, rh.id_usuario, rh.id_subtarea, rh.fecha, rh.horas, rh.comentarios, rh.estado_aprobacion, " .
-                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto " .
+                "u.nombre, u.apellidos, st.nombre_tarea, st.id_proyecto, p.nombre_proyecto, " .
+                "(SELECT COUNT(*) FROM aprobaciones WHERE id_registro = rh.id_registro) AS numero_revisiones " .
                 "FROM registro_horas rh " .
                 "INNER JOIN sub_tareas st ON st.id_subtarea = rh.id_subtarea " .
                 "LEFT JOIN proyectos p ON p.id_proyecto = st.id_proyecto " .
